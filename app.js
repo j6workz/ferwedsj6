@@ -59,7 +59,7 @@
   // Open: button, scroll/wheel down, swipe up or ArrowDown/PageDown/Space on the cover.
   // Close (reverse): pull down / wheel up while resting at the top of the invitation.
   const ANIM_MS = reduceMotion ? 50 : 1850;
-  const GLIDE_DELAY = reduceMotion ? 0 : 380, GLIDE_MS = reduceMotion ? 0 : 1450;
+  const GLIDE_DELAY = reduceMotion ? 0 : 420, GLIDE_MS = reduceMotion ? 0 : 700;   // quick: the flower band is a blur
   let isOpen = false, busy = false, observed = false, hideTimer = 0;
   let atTopSince = performance.now(); // wheel-up only closes after resting at the top, so scroll momentum can't trigger it
   let requestTC = () => {};
