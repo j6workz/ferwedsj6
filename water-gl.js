@@ -4,6 +4,7 @@
 // No WebGL → nothing changes: Chrome keeps the SVG ripple, WebKit keeps a still lake.
 (function(){
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (/[?&]debug/.test(location.search) && /[?&]off=[^&]*\bgl\b/.test(location.search)) return;   // diagnostics: ?debug&off=gl
   const opening = document.querySelector('.opening'), scene = opening && opening.querySelector('.scene');
   if (!scene) return;
 
