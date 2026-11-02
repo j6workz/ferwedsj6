@@ -28,6 +28,8 @@
   const lakeTop = () => Math.round(inv.getBoundingClientRect().top + window.scrollY);
   const restY = () => (isOpen ? lakeTop() : runway());
   const atRest = () => window.scrollY <= restY() + 2;
+  // how far (0…1 of the flower band's height) the page has been carried above the lake while open
+  const intoBand = () => { const b = document.getElementById('bridge'), c = b && b.querySelector('.in'); return c ? (lakeTop() - window.scrollY) / c.clientHeight : 0; };
   let touching = false, idleT = 0, gliding = 0;
   function glide(to, ms, done, onFrame){
     cancelAnimationFrame(gliding);
@@ -41,24 +43,10 @@
       if (u < 1) gliding = requestAnimationFrame(step); else { gliding = 0; if (done) done(); }
     })(t0);
   }
-  // Cover showing: pinned to its rest point. Open: the top of the lake is a hard floor — momentum that carries the
-  // page above it is clamped on the spot (like hitting the top of a page); a finger that drags above it springs back
-  // the moment it lets go. The flower band is never left on screen.
-  // Momentum that crosses the lake's top: kill it once (a brief overflow:hidden on the root ends iOS momentum
-  // scrolling), set the position once, then hand scrolling back. Snapping on every scroll event instead fights the
-  // momentum frame by frame, which jitters.
-  let stopping = false;
-  function stopMomentum(r){
-    stopping = true;
-    const root = document.documentElement;
-    root.style.overflow = 'hidden';
-    window.scrollTo(0, r);
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      root.style.overflow = '';
-      if (window.scrollY < r - 1) window.scrollTo(0, r);
-      stopping = false;
-    }));
-  }
+  // Cover showing: pinned to its rest point. Open: Safari runs fling momentum on its own, so the page can't stop it
+  // at the lake without fighting it (jitter). Instead: a fling (or drag) that carries the page more than 10% into the
+  // flower band closes the invitation — the glide continues the same way the fling was going. A smaller overshoot
+  // eases back to the lake once the scroll has settled.
   function settleScroll(){
     if (busy) return;
     const r = restY();
@@ -67,7 +55,7 @@
   }
   window.addEventListener('scroll', () => {
     if (!isOpen){ settleScroll(); return; }
-    if (!busy && !touching && !stopping){ const r = lakeTop(); if (window.scrollY < r - 1){ stopMomentum(r); return; } }
+    if (!busy && !touching && intoBand() > 0.1){ closeCover(); return; }
     clearTimeout(idleT); idleT = setTimeout(settleScroll, 160);
   }, { passive: true });
   window.addEventListener('load', settleScroll);
@@ -231,7 +219,7 @@
   }, { passive: false });
   const touchDone = () => {
     touchY = null; touching = false; clearTimeout(idleT);
-    if (isOpen && !busy && window.scrollY < lakeTop() - 1) glide(lakeTop(), 220);   // dragged above the lake: spring back now
+    if (isOpen && !busy && intoBand() > 0.1) closeCover();                         // dragged well into the band: close
     else idleT = setTimeout(settleScroll, 160);
   };
   window.addEventListener('touchend', touchDone, { passive: true });
