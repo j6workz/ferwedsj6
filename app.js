@@ -17,20 +17,31 @@
   }, { threshold: 0.12, rootMargin: '0px 0px -5% 0px' });
 
   const cover = document.getElementById('cover');
-  // Runway (see --rw in index.html): the document always has --rw of space above the invitation and rests scrolled
-  // to it. iOS 26 Safari only draws real page pixels behind the status bar once the page is scrolled past that bar's
-  // inset (~60px); nearer the top it paints a flat colour. So: cover and invitation both sit at scrollY = --rw,
-  // nothing ever rests above it, and opening/closing never changes the scroll.
+  const inv = document.getElementById('inv');
+  // One continuous column: cover → #bridge (flowers) → #inv. Rest points: the cover at --rw (its runway; see index.html)
+  // and the lake at the top of #inv. Opening/closing glides between them; the flowers are never scrolled by hand.
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   const runway = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--rw')) || 0;
-  const atRest = () => window.scrollY <= runway() + 2;
-  let touching = false, idleT = 0;
-  // While the cover shows: pinned on the runway. When open: if momentum ever carries the page into the runway,
-  // ease back once the scroll has settled.
+  const lakeTop = () => Math.round(inv.getBoundingClientRect().top + window.scrollY);
+  const restY = () => (isOpen ? lakeTop() : runway());
+  const atRest = () => window.scrollY <= restY() + 2;
+  let touching = false, idleT = 0, gliding = 0;
+  function glide(to, ms, done){
+    cancelAnimationFrame(gliding);
+    const from = window.scrollY, t0 = performance.now(), ease = (u) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
+    if (ms <= 0 || Math.abs(to - from) < 1){ window.scrollTo(0, to); if (done) done(); return; }
+    (function step(now){
+      const u = Math.min(1, (now - t0) / ms);
+      window.scrollTo(0, from + (to - from) * ease(u));
+      if (u < 1) gliding = requestAnimationFrame(step); else { gliding = 0; if (done) done(); }
+    })(t0);
+  }
+  // Cover showing: pinned to its rest point. Open: if momentum ever carries the page above the lake, ease back.
   function settleScroll(){
-    const r = runway();
+    if (busy) return;
+    const r = restY();
     if (!isOpen){ if (Math.abs(window.scrollY - r) > 1) window.scrollTo(0, r); return; }
-    if (!busy && !touching && window.scrollY < r - 1) window.scrollTo({ top: r, behavior: 'smooth' });
+    if (!touching && window.scrollY < r - 1) window.scrollTo({ top: r, behavior: 'smooth' });
   }
   window.addEventListener('scroll', () => {
     if (!isOpen){ settleScroll(); return; }
@@ -38,6 +49,7 @@
   }, { passive: true });
   window.addEventListener('load', settleScroll);
   window.addEventListener('pageshow', settleScroll);
+  window.addEventListener('resize', () => { if (!busy) window.scrollTo(0, restY()); });
   // the cover animates in straight away
   requestAnimationFrame(() => setTimeout(() => {
     cover.querySelectorAll('[data-r]').forEach((el) => el.classList.add('in'));
@@ -45,14 +57,12 @@
 
   // ---------- open / close the cover ----------
   // Open: button, scroll/wheel down, swipe up or ArrowDown/PageDown/Space on the cover.
-  // Close (reverse animation): pull down / wheel up while resting at the top of the invitation.
+  // Close (reverse): pull down / wheel up while resting at the top of the invitation.
   const ANIM_MS = reduceMotion ? 50 : 1850;
+  const GLIDE_DELAY = reduceMotion ? 0 : 380, GLIDE_MS = reduceMotion ? 0 : 1450;
   let isOpen = false, busy = false, observed = false, hideTimer = 0;
-  // Bar colour (Safari tints the top edge with the page background): hold the old colour until the cover is half
-  // way through opening/closing, so the tint never flashes ahead of what's on screen.
-  let tcHoldUntil = 0, requestTC = () => {};
-  const holdTC = () => { tcHoldUntil = performance.now() + ANIM_MS * 0.5; setTimeout(() => requestTC(), ANIM_MS * 0.5 + 30); };
   let atTopSince = performance.now(); // wheel-up only closes after resting at the top, so scroll momentum can't trigger it
+  let requestTC = () => {};
   settleScroll();
 
   // Scroll guard: while the cover animates (and while the wheel/trackpad momentum that opened it
@@ -61,29 +71,27 @@
 
   function openCover(){
     if (isOpen || busy) return;
-    isOpen = true; busy = true; holdTC();
+    busy = true;
     window.scrollTo(0, runway());
-    cover.classList.add('open');
+    cover.classList.add('open');                       // flap lifts, seal pops, envelope zooms away
     if (!observed){ observed = true; document.querySelectorAll('#inv [data-r]').forEach((el) => revealer.observe(el)); }
     clearTimeout(hideTimer);
-    hideTimer = setTimeout(() => {
-      cover.style.display = 'none';
+    hideTimer = setTimeout(() => glide(lakeTop(), GLIDE_MS, () => {   // garden → flowers → lake
+      isOpen = true;
       document.body.classList.remove('locked');
       busy = false;
       guardUntil = performance.now() + 450;
       atTopSince = performance.now();
-    }, ANIM_MS);
+      requestTC();
+    }), GLIDE_DELAY);
   }
   function closeCover(){
     if (!isOpen || busy) return;
-    isOpen = false; busy = true; holdTC();
+    busy = true; isOpen = false;
     clearTimeout(hideTimer);
-    window.scrollTo(0, runway());              // already there (close only fires at rest): no visible move
     document.body.classList.add('locked');
-    cover.style.display = '';
-    void cover.offsetWidth; // commit the "open" state so removing it animates in reverse
-    requestAnimationFrame(() => cover.classList.remove('open'));
-    hideTimer = setTimeout(() => { busy = false; guardUntil = performance.now() + 450; }, ANIM_MS);
+    glide(runway(), GLIDE_MS, () => { busy = false; guardUntil = performance.now() + 450; requestTC(); });
+    hideTimer = setTimeout(() => cover.classList.remove('open'), GLIDE_MS * 0.55);   // envelope returns as the garden arrives
   }
   document.getElementById('openBtn').addEventListener('click', openCover);
 
@@ -99,10 +107,10 @@
       return;
     }
     if (!isOpen){ e.preventDefault(); if (e.deltaY > 8) openCover(); return; }
-    if (e.deltaY < 0 && atRest()){ e.preventDefault(); if (e.deltaY < -8 && now - atTopSince > 350) closeCover(); }   // never scroll into the runway
+    if (e.deltaY < 0 && atRest()){ e.preventDefault(); if (e.deltaY < -8 && now - atTopSince > 350) closeCover(); }   // never scroll up into the flowers
   }, { passive: false });
 
-  // Touch: at rest, a pull-down never scrolls (no bounce into the runway) and is used only as the close gesture.
+  // Touch: at the top of the invitation a pull-down never scrolls; it is only the close gesture.
   let touchY = null, touchAtTop = false;
   window.addEventListener('touchstart', (e) => {
     touching = true;
@@ -594,12 +602,13 @@
   // (the page already draws under it: viewport-fit=cover; this tints the bar and the overscroll area to match)
   const tcMeta = document.querySelector('meta[name="theme-color"]');
   // lake: average of what's rendered under the status bar at rest (sunset sky + garlands), so Safari's top-edge tint blends in
-  const TC = { cover: '#9ba253', lake: '#b89c73', paper: '#f4efe3', deep: '#173628' };
+  const TC = { cover: '#9ba253', bridge: '#889958', lake: '#b89c73', paper: '#f4efe3', deep: '#173628' };
   let tcNow = '';
   const setTC = (c) => { if (c === tcNow) return; tcNow = c; if (tcMeta) tcMeta.content = c; document.documentElement.style.backgroundColor = c; document.body.style.backgroundColor = c; };   // Safari 26 samples body at scroll 0
+  const bridge = document.getElementById('bridge');
   const topColour = () => {
-    if (performance.now() < tcHoldUntil && tcNow) return tcNow;
-    if (!isOpen) return TC.cover;
+    if (cover.getBoundingClientRect().bottom > 1) return TC.cover;           // garden at the top of the screen
+    if (bridge && bridge.getBoundingClientRect().bottom > 1) return TC.bridge;
     for (const sec of document.querySelectorAll('#inv > section')){
       const r = sec.getBoundingClientRect();
       if (r.top <= 1 && r.bottom > 1){
@@ -657,8 +666,8 @@
 
   // ---------- back to top ----------
   const toTop = document.getElementById('toTop');
-  window.addEventListener('scroll', () => { toTop.classList.toggle('show', window.scrollY > 700); }, { passive: true });
-  toTop.addEventListener('click', () => window.scrollTo({ top: runway(), behavior: 'smooth' }));
+  window.addEventListener('scroll', () => { toTop.classList.toggle('show', isOpen && window.scrollY > lakeTop() + 700); }, { passive: true });
+  toTop.addEventListener('click', () => window.scrollTo({ top: lakeTop(), behavior: 'smooth' }));
 
   // ---------- countdown ----------
   const target = new Date('2026-11-11T11:00:00+07:00').getTime();

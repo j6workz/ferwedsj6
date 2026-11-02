@@ -39,11 +39,10 @@ if('GestureEvent' in window)document.documentElement.classList.add('wk')</script
 *{box-sizing:border-box;margin:0;padding:0}
 html{background:#9ba253;-webkit-text-size-adjust:100%}
 body{font-family:'Crimson Pro','Noto Serif Tamil',serif;font-size:16px;color:var(--ink);background:var(--deep);overflow-x:hidden;font-variant-numeric:lining-nums}
-/* Cover shown: a scroll "runway" of --rw above the invitation. The page loads scrolled to --rw (not 0), because
-   iOS 26 Safari only draws real page pixels behind its status bar / toolbar once the document has scrolled; at 0 it
-   paints a flat colour. Scrolling is blocked from JS (app.js), not with overflow:hidden, which also stops that. */
-:root{--rw:120px;--bb:150px}
-body{padding-top:var(--rw)}
+/* One continuous column: cover (garden + envelope) → #bridge (flowers) → #inv (lake …). The page rests scrolled to
+   --rw on the cover and at the top of #inv when open; app.js glides between them. iOS 26 Safari draws real page pixels
+   behind its status bar only when the page is scrolled past the bar's inset, so the top --rw of the cover is runway. */
+:root{--rw:120px}
 img{display:block;max-width:100%}
 a{color:inherit}
 h1,h2,h3,.gilda{font-family:'Gilda Display','Noto Serif Tamil',serif;font-weight:400}
@@ -146,14 +145,19 @@ section + section{margin-top:-1px}   /* sections end on fractional pixels: overl
 
 /* ---------- cover (gate): a sealed envelope on the lawn ---------- */
 /* closing back (reverse): scene returns first, flap folds down after */
-/* Not position:fixed: iOS 26 Safari paints a fixed layer at the screen edge as a flat colour behind its bars.
-   The cover sits at the top of the document instead: --rw of picture above the visible frame (under the status bar)
-   and --bb below it (under the floating toolbar). .frame is the visible screen once scrolled to --rw. */
-#cover{position:absolute;left:0;right:0;top:0;height:calc(var(--rw) + 100dvh + var(--bb));z-index:900;overflow:hidden;transform-origin:50% calc(var(--rw) + 45dvh);transition:transform 1.1s cubic-bezier(.3,0,.2,1),opacity .8s ease,filter 1.1s ease}
-/* opening: flap lifts + seal pops, then the scene zooms past and dissolves */
-#cover.open{transform:scale(2.1);opacity:0;filter:blur(6px);pointer-events:none;transition:transform 1.3s cubic-bezier(.65,0,.25,1) .5s,opacity 1s ease .75s,filter 1.3s ease .5s}
+/* In the page flow (not fixed): --rw of garden above the visible frame (under the status bar), then the frame. */
+#cover{position:relative;height:calc(var(--rw) + 100dvh);z-index:900;overflow:hidden}
+/* opening: flap lifts + seal pops, then the envelope zooms past and dissolves while the page glides down to the lake */
+#cover .stage{transition:transform 1.1s cubic-bezier(.3,0,.2,1),opacity .8s ease,filter 1.1s ease}
+#cover.open .stage{transform:scale(1.6);opacity:0;filter:blur(4px);pointer-events:none;transition:transform 1.1s cubic-bezier(.65,0,.25,1) .45s,opacity .7s ease .55s,filter 1s ease .45s}
 #cover .bg{position:absolute;inset:0;background:url(assets/bg-opening-3.webp) center/cover,var(--deep);animation:kenburns 40s ease-in-out infinite alternate}
 #cover .frame{position:absolute;left:0;right:0;top:var(--rw);height:100dvh}
+/* garden → lake: a deep band of bouquets the page glides through when the envelope opens (never scrolled by hand) */
+#bridge{position:relative;z-index:901;pointer-events:none;height:72dvh;margin-top:-1px;background:linear-gradient(180deg,#889958 0%,#7f8f50 40%,#9a8d5c 75%,#b89c73 100%)}   /* flowers spill over both edges (body clips sideways) */
+#bridge .in{position:relative;max-width:var(--col);height:100%;margin:0 auto}
+#bridge img{position:absolute;display:block;height:auto;pointer-events:none;filter:drop-shadow(0 4px 6px rgba(15,39,28,.22))}
+#bridge .fx{transform:scaleX(-1)}
+#bridge .fy{transform:scaleY(-1)}
 #cover .veil{position:absolute;left:0;right:0;top:calc(-1 * var(--rw));bottom:calc(-1 * var(--bb));z-index:1;background:radial-gradient(70% 50% at 50% 48%,rgba(15,39,28,.28),rgba(15,39,28,.12) 70%),linear-gradient(180deg,rgba(15,39,28,.1),rgba(15,39,28,.05) 60%,rgba(244,239,227,.4))}
 #cover .stage{position:absolute;inset:0;z-index:3;display:flex;align-items:center;justify-content:center;padding:calc(56px + env(safe-area-inset-top)) 22px calc(13vh + env(safe-area-inset-bottom))}
 .env{position:relative;width:100%;max-width:340px;perspective:1100px;text-align:center}
@@ -182,7 +186,7 @@ section + section{margin-top:-1px}   /* sections end on fractional pixels: overl
 .nap-cat{position:absolute;right:-14px;bottom:calc(100% - 9px);width:92px;pointer-events:none;transform-origin:50% 100%;animation:napBreathe 3.6s ease-in-out infinite;filter:drop-shadow(0 3px 3px rgba(15,39,28,.22))}
 @keyframes napBreathe{0%,100%{transform:scale(1,1)}50%{transform:scale(1.012,1.035)}}
 @media (max-height:700px){#cover .stage{padding-bottom:calc(4vh + env(safe-area-inset-bottom))}}
-@media (prefers-reduced-motion:reduce){#cover,#cover.open,.env .flap,.env .seal{transition:none!important}.nap-cat{animation:none}#cover .bg{animation:none}}
+@media (prefers-reduced-motion:reduce){#cover .stage,#cover.open .stage,.env .flap,.env .seal{transition:none!important}.nap-cat{animation:none}#cover .bg{animation:none}}
 
 /* ---------- opening (first section): sunset lake, couple, names ---------- */
 .opening{height:100svh;min-height:560px;background:var(--deep)}
@@ -520,6 +524,31 @@ html[lang="ta"] .closing .names[data-i18n]{font-size:30px}
   </div>
 </div>
 
+<div id="bridge" aria-hidden="true"><div class="in">
+  <img src="assets/floral-band.webp"      alt="" style="left:-14%;top:-80px;width:128%">
+  <img src="assets/floral-bouquet.webp"   alt="" style="left:-12%;top:-70px;width:42%">
+  <img src="assets/floral-bouquet.webp"   alt="" class="fx" style="right:-12%;top:-66px;width:42%">
+  <img src="assets/floral-bouquet.webp"   alt="" style="left:-10%;top:6%;width:48%">
+  <img src="assets/floral-bouquet.webp"   alt="" class="fx" style="right:-10%;top:8%;width:48%">
+  <img src="assets/floral-bouquet.webp"   alt="" style="left:27%;top:14%;width:46%">
+  <img src="assets/floral-sprig.webp"     alt="" style="left:2%;top:21%;width:24%">
+  <img src="assets/floral-sprig.webp"     alt="" class="fx" style="right:2%;top:22%;width:24%">
+  <img src="assets/floral-corner-bl.webp" alt="" style="left:-14%;top:24%;width:56%">
+  <img src="assets/floral-corner-bl.webp" alt="" class="fx" style="right:-14%;top:26%;width:56%">
+  <img src="assets/floral-band.webp"      alt="" style="left:-18%;top:31%;width:136%">
+  <img src="assets/floral-bouquet.webp"   alt="" class="fx" style="left:-6%;top:44%;width:44%">
+  <img src="assets/floral-bouquet.webp"   alt="" style="right:-6%;top:46%;width:44%">
+  <img src="assets/floral-bouquet.webp"   alt="" style="left:30%;top:50%;width:40%">
+  <img src="assets/floral-corner-tl.webp" alt="" class="fy" style="left:-12%;top:57%;width:54%">
+  <img src="assets/floral-corner-tl.webp" alt="" style="right:-12%;top:58%;width:54%;transform:scale(-1,-1)">
+  <img src="assets/floral-band.webp"      alt="" style="left:-16%;top:62%;width:132%">
+  <img src="assets/floral-sprig.webp"     alt="" class="fx" style="left:-2%;top:72%;width:26%">
+  <img src="assets/floral-sprig.webp"     alt="" style="right:-2%;top:73%;width:26%">
+  <img src="assets/floral-bouquet.webp"   alt="" class="fy" style="left:-12%;bottom:-62px;width:42%">
+  <img src="assets/floral-bouquet.webp"   alt="" style="right:-14%;bottom:-40px;width:48%;transform:scale(-1,-1)">
+  <img src="assets/floral-band.webp"      alt="" style="left:-14%;bottom:-75px;width:128%">
+</div></div>
+
 <main id="inv">
 
 <!-- ===== opening scene ===== -->
@@ -791,7 +820,7 @@ html[lang="ta"] .closing .names[data-i18n]{font-size:30px}
 
 <script>if(/[?&]debug/.test(location.search))document.write('<script src="debug.js?v=5"><\/script>')</script>
 <script src="i18n.js?v=20261103w"></script>
-<script src="app.js?v=20261104c"></script>
+<script src="app.js?v=20261104d"></script>
 <script src="water-gl.js?v=5"></script>
 <script type="module" src="rsvp.js?v=20261103w"></script>
 </body>
