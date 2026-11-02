@@ -27,14 +27,27 @@
   }
   requestAnimationFrame(loop);
 
+  // Report every preventDefault() on a touch/pointer event inside the card row, with the calling line.
+  let tr = null;
+  const pd = Event.prototype.preventDefault;
+  Event.prototype.preventDefault = function(){
+    if (tr && /^(touch|pointer|gesture)/.test(this.type) && this.target instanceof Node && tr.contains(this.target)){
+      const at = ((new Error().stack || '').split('\n').find((l) => /app\.js|i18n\.js|rsvp\.js/.test(l)) || '?').replace(/.*\//, '').trim();
+      note('PD ' + this.type + ' @ ' + at);
+    }
+    return pd.call(this);
+  };
+
   document.addEventListener('DOMContentLoaded', () => {
-    const tr = document.getElementById('giftTrack');
+    tr = document.getElementById('giftTrack');
     if (!tr) return;
-    let sx = 0, scrolls = 0;
-    tr.addEventListener('touchstart', (e) => { sx = tr.scrollLeft; scrolls = 0; const t = e.target; note('start on ' + t.tagName.toLowerCase() + '.' + (t.className || '').toString().split(' ')[0]); }, { passive: true });
+    const cs = getComputedStyle(tr);
+    note('track ox=' + cs.overflowX + ' snap=' + cs.scrollSnapType + ' ta=' + cs.touchAction + ' w=' + tr.clientWidth + '/' + tr.scrollWidth);
+    let sx = 0, sy = 0, scrolls = 0, moves = 0, canc = 0, x0 = 0, dx = 0;
+    tr.addEventListener('touchstart', (e) => { sx = tr.scrollLeft; sy = window.scrollY; scrolls = moves = canc = 0; x0 = e.touches[0].clientX; dx = 0; const t = e.target; note('start on ' + t.tagName.toLowerCase() + '.' + (t.className || '').toString().split(' ')[0]); }, { passive: true });
+    tr.addEventListener('touchmove', (e) => { moves++; if (e.cancelable) canc++; dx = e.touches[0].clientX - x0; }, { passive: true });
     tr.addEventListener('scroll', () => { scrolls++; }, { passive: true });
-    tr.addEventListener('touchend', () => { note('end: scrollLeft ' + Math.round(sx) + '→' + Math.round(tr.scrollLeft) + ' (' + scrolls + ' scroll ev) max ' + (tr.scrollWidth - tr.clientWidth)); }, { passive: true });
-    window.addEventListener('touchmove', (e) => { if (tr.contains(e.target) && e.defaultPrevented) note('touchmove PREVENTED'); }, { passive: true });
-    document.addEventListener('touchmove', (e) => { if (tr.contains(e.target)) setTimeout(() => { if (e.defaultPrevented) note('touchmove prevented (late)'); }); }, { passive: true, capture: true });
+    tr.addEventListener('touchend', () => { note('end: x ' + Math.round(sx) + '→' + Math.round(tr.scrollLeft) + ' scrollev ' + scrolls + ' moves ' + moves + ' (cancelable ' + canc + ') fingerdx ' + Math.round(dx) + ' pageY ' + Math.round(window.scrollY - sy)); }, { passive: true });
+    tr.addEventListener('touchcancel', () => { note('touchCANCEL after ' + moves + ' moves'); }, { passive: true });
   });
 })();
