@@ -41,7 +41,9 @@
       if (u < 1) gliding = requestAnimationFrame(step); else { gliding = 0; if (done) done(); }
     })(t0);
   }
-  // Cover showing: pinned to its rest point. Open: if momentum ever carries the page above the lake, ease back.
+  // Cover showing: pinned to its rest point. Open: the top of the lake is a hard floor — momentum that carries the
+  // page above it is clamped on the spot (like hitting the top of a page); a finger that drags above it springs back
+  // the moment it lets go. The flower band is never left on screen.
   function settleScroll(){
     if (busy) return;
     const r = restY();
@@ -50,6 +52,7 @@
   }
   window.addEventListener('scroll', () => {
     if (!isOpen){ settleScroll(); return; }
+    if (!busy && !touching){ const r = lakeTop(); if (window.scrollY < r - 1){ window.scrollTo(0, r); return; } }
     clearTimeout(idleT); idleT = setTimeout(settleScroll, 160);
   }, { passive: true });
   window.addEventListener('load', settleScroll);
@@ -129,8 +132,6 @@
     if (!observed){ observed = true; document.querySelectorAll('#inv [data-r]').forEach((el) => revealer.observe(el)); }
     clearTimeout(hideTimer);
     const done = () => {
-      document.body.classList.add('opened');          // garden + band leave the page; the short runway strip stays
-      window.scrollTo(0, lakeTop());                   // same frame: the lake doesn't move on screen
       isOpen = true;
       document.body.classList.remove('locked');
       busy = false;
@@ -162,8 +163,6 @@
     busy = true; isOpen = false;
     clearTimeout(hideTimer);
     document.body.classList.add('locked');
-    document.body.classList.remove('opened');         // garden + band back above the lake …
-    window.scrollTo(0, lakeTop());                     // … and jump past them in the same frame (nothing moves)
     let card = null;
     if (ecard && bridge && peekRect && !reduceMotion){ card = floralCard(1); card.style.visibility = 'hidden'; card.style.boxShadow = 'none'; document.body.appendChild(card); }
     cover.classList.add('unsink'); cover.classList.remove('sink');   // envelope rises and fades back in during the glide
@@ -213,8 +212,13 @@
     const dy = e.touches[0].clientY - touchY; // >0 = finger moving down (scrolling up)
     if (!isOpen){ e.preventDefault(); if (dy < -40){ touchY = null; openCover(); } }
     else if (touchAtTop && atRest() && dy > 0){ e.preventDefault(); if (dy > 80){ touchY = null; closeCover(); } }
+    else if (atRest() && dy > 0 && e.cancelable) e.preventDefault();   // reached the lake's top mid-drag: stop (where Safari allows)
   }, { passive: false });
-  const touchDone = () => { touchY = null; touching = false; clearTimeout(idleT); idleT = setTimeout(settleScroll, 160); };
+  const touchDone = () => {
+    touchY = null; touching = false; clearTimeout(idleT);
+    if (isOpen && !busy && window.scrollY < lakeTop() - 1) glide(lakeTop(), 220);   // dragged above the lake: spring back now
+    else idleT = setTimeout(settleScroll, 160);
+  };
   window.addEventListener('touchend', touchDone, { passive: true });
   window.addEventListener('touchcancel', touchDone, { passive: true });
 
@@ -696,7 +700,6 @@
   let tcNow = '';
   const setTC = (c) => { if (c === tcNow) return; tcNow = c; if (tcMeta) tcMeta.content = c; document.documentElement.style.backgroundColor = c; document.body.style.backgroundColor = c; };   // Safari 26 samples body at scroll 0
   const topColour = () => {
-    if (document.body.classList.contains('opened') && window.scrollY < runway()) return TC.lake;   // runway strip at the top
     if (cover.getBoundingClientRect().bottom > 1) return TC.cover;           // garden at the top of the screen
     if (bridge && bridge.getBoundingClientRect().bottom > 1) return TC.bridge;
     for (const sec of document.querySelectorAll('#inv > section')){
