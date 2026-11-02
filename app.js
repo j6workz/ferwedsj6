@@ -76,14 +76,16 @@
   // as the band scrolls in; once they coincide the copy is dropped and the real band carries on to the lake.
   const bridge = document.getElementById('bridge'), env = cover.querySelector('.env');
   const FUSE = 0.6;                       // glide progress at which the card sits exactly on the band
+  const core = bridge && bridge.querySelector('.in');   // the band itself (#bridge reaches 100px beyond it each way)
+  const coreRect = () => { const b = bridge.getBoundingClientRect(), c = core.getBoundingClientRect(); return { left: b.left, top: c.top, width: b.width }; };
   let ecard = null, peekRect = null;
   function floralCard(scale){
-    const W = bridge.clientWidth, H = bridge.clientHeight;
+    const W = bridge.clientWidth, H = core.clientHeight;
     const outer = document.createElement('div'); outer.className = 'fcard'; outer.setAttribute('aria-hidden', 'true');
     outer.style.width = (W * scale) + 'px'; outer.style.height = (H * scale) + 'px';
     const inner = document.createElement('div'); inner.className = 'fcard-in';
     inner.style.width = W + 'px'; inner.style.height = H + 'px'; inner.style.transform = 'scale(' + scale + ')';
-    inner.style.backgroundImage = getComputedStyle(bridge).backgroundImage;
+    inner.style.background = 'var(--bridge-bg)';
     inner.appendChild(bridge.querySelector('.floral-fill').cloneNode(true));
     outer.appendChild(inner);
     return outer;
@@ -92,7 +94,7 @@
     if (!bridge || !env) return;
     if (ecard) ecard.remove();
     // fit inside the envelope front both ways (the band's aspect varies with the screen), centred, 22px below its top
-    const pap = env.querySelector('.paper'), W = bridge.clientWidth, H = bridge.clientHeight;
+    const pap = env.querySelector('.paper'), W = bridge.clientWidth, H = core.clientHeight;
     const cw = Math.min(env.clientWidth * 0.86, (pap.offsetHeight - 22 - 14) * W / H);
     ecard = floralCard(cw / W);
     ecard.style.left = ((env.clientWidth - cw) / 2) + 'px';
@@ -145,7 +147,7 @@
       glide(lakeTop(), GLIDE_MS, () => { if (card) card.remove(); bridge.classList.remove('veiled'); done(); }, (u) => {
         if (!card) return;
         if (u >= FUSE){ bridge.classList.remove('veiled'); card.remove(); card = null; return; }   // on the band now: the real band takes over
-        const b = bridge.getBoundingClientRect(), q = smooth(u / FUSE);
+        const b = coreRect(), q = smooth(u / FUSE);
         placeCard(card, lerp(peekRect.left, b.left, q), lerp(peekRect.top, b.top, q), lerp(peekRect.width, b.width, q), q);
       });
     }, GLIDE_DELAY);
@@ -167,7 +169,7 @@
       setTimeout(() => { busy = false; guardUntil = performance.now() + 450; requestTC(); }, 900);
     }, (u) => {
       if (!card) return;
-      const b = bridge.getBoundingClientRect();
+      const b = coreRect();
       if (u < 1 - FUSE){ card.style.visibility = 'hidden'; bridge.classList.remove('veiled'); return; }  // still the real band
       card.style.visibility = ''; bridge.classList.add('veiled');
       const q = smooth((u - (1 - FUSE)) / FUSE);

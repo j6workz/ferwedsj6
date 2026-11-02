@@ -42,7 +42,7 @@ body{font-family:'Crimson Pro','Noto Serif Tamil',serif;font-size:16px;color:var
 /* One continuous column: cover (garden + envelope) → #bridge (flowers) → #inv (lake …). The page rests scrolled to
    --rw on the cover and at the top of #inv when open; app.js glides between them. iOS 26 Safari draws real page pixels
    behind its status bar only when the page is scrolled past the bar's inset, so the top --rw of the cover is runway. */
-:root{--rw:120px}
+:root{--rw:120px;--bridge-bg:linear-gradient(180deg,#889958 0%,#7f8f50 40%,#9a8d5c 75%,#b89c73 100%)}
 img{display:block;max-width:100%}
 a{color:inherit}
 h1,h2,h3,.gilda{font-family:'Gilda Display','Noto Serif Tamil',serif;font-weight:400}
@@ -161,8 +161,11 @@ body > .fcard{left:0;top:0;transform-origin:0 0;z-index:905}
 #cover .bg{position:absolute;inset:0;background:url(assets/bg-opening-3.webp) center/cover,var(--deep);animation:kenburns 40s ease-in-out infinite alternate}
 #cover .frame{position:absolute;left:0;right:0;top:var(--rw);height:100dvh}
 /* garden → lake: a deep band of bouquets the page glides through when the envelope opens (never scrolled by hand) */
-#bridge{position:relative;z-index:901;pointer-events:none;overflow-x:clip;overflow-y:visible;height:72dvh;margin-top:-1px;background:linear-gradient(180deg,#889958 0%,#7f8f50 40%,#9a8d5c 75%,#b89c73 100%)}   /* flowers spill over the top/bottom seams; clipped sideways so the page never gets wider than the screen */
-#bridge .in,.floral-fill{position:relative;max-width:var(--col);height:100%;margin:0 auto}
+/* The band's box reaches 100px into the garden above and the lake below (transparent there), so the flowers that
+   cover both joins sit inside it: a plain overflow:hidden trims only the sides, on every browser. */
+#bridge{position:relative;z-index:901;pointer-events:none;overflow:hidden;height:calc(72dvh + 200px);margin:-101px 0 -100px;background:var(--bridge-bg) 0 100px/100% calc(100% - 200px) no-repeat}
+.floral-fill{position:relative;max-width:var(--col);height:100%;margin:0 auto}
+#bridge .in{position:absolute;left:0;right:0;top:100px;bottom:100px;max-width:var(--col);height:auto;margin:0 auto}
 #bridge.veiled .in > img:not(.seam){visibility:hidden}   /* while the floral card grows onto it: no doubled flowers (seam rows stay) */
 #bridge img,.floral-fill img{position:absolute;display:block;height:auto;pointer-events:none;filter:drop-shadow(0 4px 6px rgba(15,39,28,.22))}
 #bridge .fx,.floral-fill .fx{transform:scaleX(-1)}
@@ -555,6 +558,8 @@ html[lang="ta"] .closing .names[data-i18n]{font-size:30px}
   <img src="assets/floral-sprig.webp"     alt="" style="right:-2%;top:73%;width:26%">
   <img src="assets/floral-bouquet.webp"   alt="" class="seam fy" style="left:-12%;bottom:-62px;width:42%">
   <img class="seam" src="assets/floral-bouquet.webp"   alt="" style="right:-14%;bottom:-40px;width:48%;transform:scale(-1,-1)">
+  <img src="assets/floral-bouquet.webp"   alt="" class="seam" style="left:22%;bottom:-58px;width:34%">
+  <img src="assets/floral-bouquet.webp"   alt="" class="seam fx" style="right:22%;bottom:-62px;width:34%">
   <img class="seam" src="assets/floral-band.webp"      alt="" style="left:-14%;bottom:-75px;width:128%">
 </div></div>
 
@@ -829,7 +834,7 @@ html[lang="ta"] .closing .names[data-i18n]{font-size:30px}
 
 <script>if(/[?&]debug/.test(location.search))document.write('<script src="debug.js?v=6"><\/script>')</script>
 <script src="i18n.js?v=20261103w"></script>
-<script src="app.js?v=20261104l"></script>
+<script src="app.js?v=20261104m"></script>
 <script src="water-gl.js?v=5"></script>
 <script type="module" src="rsvp.js?v=20261103w"></script>
 </body>
