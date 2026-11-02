@@ -19,6 +19,7 @@
   }
   // &probe: which colour does Safari paint behind its bars? html red, body blue, cover picture = real pixels
   if (p.has('probe')) css.push('html{background-color:#ff0000!important}body{background-color:#0040ff!important}');
+  if (p.get('freeze')) window.__glideFreeze = parseFloat(p.get('freeze'));   // stop the cover glide at this progress (0–1)
   if (css.length){ const s = document.createElement('style'); s.textContent = css.join('\n'); document.head.appendChild(s); }
 
   const box = document.createElement('div');

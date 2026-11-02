@@ -26,13 +26,15 @@
   const restY = () => (isOpen ? lakeTop() : runway());
   const atRest = () => window.scrollY <= restY() + 2;
   let touching = false, idleT = 0, gliding = 0;
-  function glide(to, ms, done){
+  function glide(to, ms, done, onFrame){
     cancelAnimationFrame(gliding);
     const from = window.scrollY, t0 = performance.now(), ease = (u) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
-    if (ms <= 0 || Math.abs(to - from) < 1){ window.scrollTo(0, to); if (done) done(); return; }
+    if (ms <= 0 || Math.abs(to - from) < 1){ window.scrollTo(0, to); if (onFrame) onFrame(1); if (done) done(); return; }
     (function step(now){
-      const u = Math.min(1, (now - t0) / ms);
+      const u = Math.min(1, (now - t0) / ms, window.__glideFreeze || 1);   // __glideFreeze: diagnostics only (?debug&freeze=)
       window.scrollTo(0, from + (to - from) * ease(u));
+      if (onFrame) onFrame(u);
+      if (window.__glideFreeze && u >= window.__glideFreeze) return;
       if (u < 1) gliding = requestAnimationFrame(step); else { gliding = 0; if (done) done(); }
     })(t0);
   }
@@ -59,7 +61,7 @@
   // Open: button, scroll/wheel down, swipe up or ArrowDown/PageDown/Space on the cover.
   // Close (reverse): pull down / wheel up while resting at the top of the invitation.
   const ANIM_MS = reduceMotion ? 50 : 1850;
-  const GLIDE_DELAY = reduceMotion ? 0 : 420, GLIDE_MS = reduceMotion ? 0 : 700;   // quick: the flower band is a blur
+  const GLIDE_DELAY = reduceMotion ? 0 : 860, GLIDE_MS = reduceMotion ? 0 : 950;   // after the card has peeked out
   let isOpen = false, busy = false, observed = false, hideTimer = 0;
   let atTopSince = performance.now(); // wheel-up only closes after resting at the top, so scroll momentum can't trigger it
   let requestTC = () => {};
@@ -69,29 +71,102 @@
   // is still streaming in) page scrolling is swallowed, so the lake scene is never skipped.
   let guardUntil = 0, lastWheel = 0;
 
+  // ---- floral card: a scaled copy of the flower band (#bridge) living inside the envelope ----
+  // Opening: it peeks out of the pocket (CSS), then a full-size copy takes its place on screen and grows onto the band
+  // as the band scrolls in; once they coincide the copy is dropped and the real band carries on to the lake.
+  const bridge = document.getElementById('bridge'), env = cover.querySelector('.env');
+  const FUSE = 0.6;                       // glide progress at which the card sits exactly on the band
+  let ecard = null, peekRect = null;
+  function floralCard(scale){
+    const W = bridge.clientWidth, H = bridge.clientHeight;
+    const outer = document.createElement('div'); outer.className = 'fcard'; outer.setAttribute('aria-hidden', 'true');
+    outer.style.width = (W * scale) + 'px'; outer.style.height = (H * scale) + 'px';
+    const inner = document.createElement('div'); inner.className = 'fcard-in';
+    inner.style.width = W + 'px'; inner.style.height = H + 'px'; inner.style.transform = 'scale(' + scale + ')';
+    inner.style.backgroundImage = getComputedStyle(bridge).backgroundImage;
+    inner.appendChild(bridge.querySelector('.floral-fill').cloneNode(true));
+    outer.appendChild(inner);
+    return outer;
+  }
+  function buildEnvelopeCard(){
+    if (!bridge || !env) return;
+    if (ecard) ecard.remove();
+    const cw = env.clientWidth * 0.86;
+    ecard = floralCard(cw / bridge.clientWidth);
+    ecard.style.setProperty('--peek', -Math.round(parseFloat(ecard.style.height) * 0.38) + 'px');
+    env.insertBefore(ecard, env.firstChild);
+  }
+  buildEnvelopeCard();
+  window.addEventListener('resize', () => { if (!busy && !isOpen) buildEnvelopeCard(); });
+  const lerp = (a, b, t) => a + (b - a) * t, smooth = (t) => t * t * (3 - 2 * t);
+  // screen rect → document position (the card scrolls with the page, never fixed). q = 0 in the envelope … 1 on the
+  // band: corners straighten and the edges feather out, so the card melts into the identical band underneath.
+  function placeCard(card, x, y, w, q){
+    const W = bridge.clientWidth, sc = w / W, f = (36 * q / sc).toFixed(1) + 'px';
+    card.style.transform = 'translate(' + x + 'px,' + (y + window.scrollY) + 'px) scale(' + sc + ')';
+    card.style.borderRadius = (10 * (1 - q) / sc) + 'px';
+    const m = 'linear-gradient(90deg,transparent,#000 ' + f + ',#000 calc(100% - ' + f + '),transparent),linear-gradient(180deg,transparent,#000 ' + f + ',#000 calc(100% - ' + f + '),transparent)';
+    card.style.webkitMaskImage = m; card.style.maskImage = m;
+    card.style.webkitMaskComposite = 'source-in'; card.style.maskComposite = 'intersect';
+  }
+
   function openCover(){
     if (isOpen || busy) return;
     busy = true;
     window.scrollTo(0, runway());
-    cover.classList.add('open');                       // flap lifts, seal pops, envelope zooms away
+    cover.classList.add('open');                       // flap lifts and folds back; the floral card peeks out
     if (!observed){ observed = true; document.querySelectorAll('#inv [data-r]').forEach((el) => revealer.observe(el)); }
     clearTimeout(hideTimer);
-    hideTimer = setTimeout(() => glide(lakeTop(), GLIDE_MS, () => {   // garden → flowers → lake
+    const done = () => {
       isOpen = true;
       document.body.classList.remove('locked');
       busy = false;
       guardUntil = performance.now() + 450;
       atTopSince = performance.now();
       requestTC();
-    }), GLIDE_DELAY);
+    };
+    hideTimer = setTimeout(() => {
+      let card = null;
+      if (ecard && bridge && !reduceMotion){
+        peekRect = ecard.getBoundingClientRect();
+        card = floralCard(1); document.body.appendChild(card);
+        card.style.boxShadow = 'none';
+        placeCard(card, peekRect.left, peekRect.top, peekRect.width, 0);
+        ecard.style.visibility = 'hidden';
+        bridge.classList.add('veiled');
+      }
+      cover.classList.add('sink');                     // only the envelope sinks and fades; the garden scrolls normally
+      glide(lakeTop(), GLIDE_MS, () => { if (card) card.remove(); bridge.classList.remove('veiled'); done(); }, (u) => {
+        if (!card) return;
+        if (u >= FUSE){ bridge.classList.remove('veiled'); card.remove(); card = null; return; }   // on the band now: the real band takes over
+        const b = bridge.getBoundingClientRect(), q = smooth(u / FUSE);
+        placeCard(card, lerp(peekRect.left, b.left, q), lerp(peekRect.top, b.top, q), lerp(peekRect.width, b.width, q), q);
+      });
+    }, GLIDE_DELAY);
   }
   function closeCover(){
     if (!isOpen || busy) return;
     busy = true; isOpen = false;
     clearTimeout(hideTimer);
     document.body.classList.add('locked');
-    glide(runway(), GLIDE_MS, () => { busy = false; guardUntil = performance.now() + 450; requestTC(); });
-    hideTimer = setTimeout(() => cover.classList.remove('open'), GLIDE_MS * 0.55);   // envelope returns as the garden arrives
+    let card = null;
+    if (ecard && bridge && peekRect && !reduceMotion){ card = floralCard(1); card.style.visibility = 'hidden'; card.style.boxShadow = 'none'; document.body.appendChild(card); }
+    cover.classList.add('unsink'); cover.classList.remove('sink');   // envelope rises and fades back in during the glide
+    glide(runway(), GLIDE_MS, () => {
+      if (card) card.remove();
+      bridge.classList.remove('veiled');
+      if (ecard) ecard.style.visibility = '';                          // the card is back, peeking out of the pocket
+      cover.classList.remove('unsink');
+      hideTimer = setTimeout(() => cover.classList.remove('open'), 90);  // slides into the pocket, flap closes
+      setTimeout(() => { busy = false; guardUntil = performance.now() + 450; requestTC(); }, 900);
+    }, (u) => {
+      if (!card) return;
+      const b = bridge.getBoundingClientRect();
+      if (u < 1 - FUSE){ card.style.visibility = 'hidden'; bridge.classList.remove('veiled'); return; }  // still the real band
+      card.style.visibility = ''; bridge.classList.add('veiled');
+      const q = smooth((u - (1 - FUSE)) / FUSE);
+      placeCard(card, lerp(b.left, peekRect.left, q), lerp(b.top, peekRect.top, q), lerp(b.width, peekRect.width, q), 1 - q);
+    });
   }
   document.getElementById('openBtn').addEventListener('click', openCover);
 
@@ -605,7 +680,6 @@
   const TC = { cover: '#9ba253', bridge: '#889958', lake: '#b89c73', paper: '#f4efe3', deep: '#173628' };
   let tcNow = '';
   const setTC = (c) => { if (c === tcNow) return; tcNow = c; if (tcMeta) tcMeta.content = c; document.documentElement.style.backgroundColor = c; document.body.style.backgroundColor = c; };   // Safari 26 samples body at scroll 0
-  const bridge = document.getElementById('bridge');
   const topColour = () => {
     if (cover.getBoundingClientRect().bottom > 1) return TC.cover;           // garden at the top of the screen
     if (bridge && bridge.getBoundingClientRect().bottom > 1) return TC.bridge;
