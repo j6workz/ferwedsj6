@@ -17,24 +17,27 @@
   }, { threshold: 0.12, rootMargin: '0px 0px -5% 0px' });
 
   const cover = document.getElementById('cover');
-  // Runway (see body.locked in index.html): while the cover shows, the page sits scrolled to --rw so iOS 26 Safari
-  // draws the cover picture behind its bars. Keep it pinned there; JS gestures below still open the cover.
+  // Runway (see --rw in index.html): the document always has --rw of space above the invitation and rests scrolled
+  // to it. iOS 26 Safari only draws real page pixels behind the status bar once the page is scrolled past that bar's
+  // inset (~60px); nearer the top it paints a flat colour. So: cover and invitation both sit at scrollY = --rw,
+  // nothing ever rests above it, and opening/closing never changes the scroll.
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   const runway = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--rw')) || 0;
-  const pinRunway = () => { if (document.body.classList.contains('locked') && Math.abs(window.scrollY - runway()) > 1) window.scrollTo(0, runway()); };
-  // Open invitation: rest 1px down, never at exactly 0 (at 0 Safari paints the body colour flat behind the clock).
-  const REST = 1;
+  const atRest = () => window.scrollY <= runway() + 2;
   let touching = false, idleT = 0;
-  window.addEventListener('touchstart', () => { touching = true; }, { passive: true });
-  const touchDone = () => { touching = false; clearTimeout(idleT); idleT = setTimeout(nudge, 160); };
-  window.addEventListener('touchend', touchDone, { passive: true });
-  window.addEventListener('touchcancel', touchDone, { passive: true });
-  function nudge(){ if (isOpen && !busy && !touching && window.scrollY < REST) window.scrollTo(0, REST); }
-  window.addEventListener('scroll', () => { clearTimeout(idleT); idleT = setTimeout(nudge, 160); }, { passive: true });
-  pinRunway();
-  window.addEventListener('load', pinRunway);
-  window.addEventListener('pageshow', pinRunway);
-  window.addEventListener('scroll', pinRunway, { passive: true });
+  // While the cover shows: pinned on the runway. When open: if momentum ever carries the page into the runway,
+  // ease back once the scroll has settled.
+  function settleScroll(){
+    const r = runway();
+    if (!isOpen){ if (Math.abs(window.scrollY - r) > 1) window.scrollTo(0, r); return; }
+    if (!busy && !touching && window.scrollY < r - 1) window.scrollTo({ top: r, behavior: 'smooth' });
+  }
+  window.addEventListener('scroll', () => {
+    if (!isOpen){ settleScroll(); return; }
+    clearTimeout(idleT); idleT = setTimeout(settleScroll, 160);
+  }, { passive: true });
+  window.addEventListener('load', settleScroll);
+  window.addEventListener('pageshow', settleScroll);
   // the cover animates in straight away
   requestAnimationFrame(() => setTimeout(() => {
     cover.querySelectorAll('[data-r]').forEach((el) => el.classList.add('in'));
@@ -42,10 +45,11 @@
 
   // ---------- open / close the cover ----------
   // Open: button, scroll/wheel down, swipe up or ArrowDown/PageDown/Space on the cover.
-  // Close (reverse animation): scroll/swipe further up while already at the top of the invitation.
+  // Close (reverse animation): pull down / wheel up while resting at the top of the invitation.
   const ANIM_MS = reduceMotion ? 50 : 1850;
   let isOpen = false, busy = false, observed = false, hideTimer = 0;
   let atTopSince = performance.now(); // wheel-up only closes after resting at the top, so scroll momentum can't trigger it
+  settleScroll();
 
   // Scroll guard: while the cover animates (and while the wheel/trackpad momentum that opened it
   // is still streaming in) page scrolling is swallowed, so the lake scene is never skipped.
@@ -54,14 +58,13 @@
   function openCover(){
     if (isOpen || busy) return;
     isOpen = true; busy = true;
-    pinRunway();
+    window.scrollTo(0, runway());
     cover.classList.add('open');
     if (!observed){ observed = true; document.querySelectorAll('#inv [data-r]').forEach((el) => revealer.observe(el)); }
     clearTimeout(hideTimer);
     hideTimer = setTimeout(() => {
       cover.style.display = 'none';
-      document.body.classList.remove('locked'); // unlock only once the lake scene is fully in view; dropping the
-      window.scrollTo(0, REST);                  // runway and scrolling to REST together leave the view unchanged
+      document.body.classList.remove('locked');
       busy = false;
       guardUntil = performance.now() + 450;
       atTopSince = performance.now();
@@ -71,24 +74,16 @@
     if (!isOpen || busy) return;
     isOpen = false; busy = true;
     clearTimeout(hideTimer);
-    // Don't touch the scroll while the swipe that closed it may still be bouncing: put the cover's frame where
-    // the view is now, and move onto the runway only after the animation (no fighting = no jitter).
-    cover.style.top = (window.scrollY - runway()) + 'px';
+    window.scrollTo(0, runway());              // already there (close only fires at rest): no visible move
+    document.body.classList.add('locked');
     cover.style.display = '';
     void cover.offsetWidth; // commit the "open" state so removing it animates in reverse
     requestAnimationFrame(() => cover.classList.remove('open'));
-    const settle = () => {
-      if (touching){ hideTimer = setTimeout(settle, 120); return; }
-      cover.style.top = '';
-      document.body.classList.add('locked');   // runway back, then sit on it: the view doesn't move
-      window.scrollTo(0, runway());
-      busy = false; guardUntil = performance.now() + 450;
-    };
-    hideTimer = setTimeout(settle, ANIM_MS);
+    hideTimer = setTimeout(() => { busy = false; guardUntil = performance.now() + 450; }, ANIM_MS);
   }
   document.getElementById('openBtn').addEventListener('click', openCover);
 
-  window.addEventListener('scroll', () => { if (window.scrollY > 2) atTopSince = Infinity; else if (atTopSince === Infinity) atTopSince = performance.now(); }, { passive: true });
+  window.addEventListener('scroll', () => { if (!atRest()) atTopSince = Infinity; else if (atTopSince === Infinity) atTopSince = performance.now(); }, { passive: true });
 
   window.addEventListener('wheel', (e) => {
     const now = performance.now();
@@ -100,22 +95,26 @@
       return;
     }
     if (!isOpen){ e.preventDefault(); if (e.deltaY > 8) openCover(); return; }
-    if (e.deltaY < -8 && window.scrollY <= 2 && now - atTopSince > 350) closeCover();
+    if (e.deltaY < 0 && atRest()){ e.preventDefault(); if (e.deltaY < -8 && now - atTopSince > 350) closeCover(); }   // never scroll into the runway
   }, { passive: false });
 
+  // Touch: at rest, a pull-down never scrolls (no bounce into the runway) and is used only as the close gesture.
   let touchY = null, touchAtTop = false;
   window.addEventListener('touchstart', (e) => {
+    touching = true;
     touchY = e.touches[0].clientY;
-    touchAtTop = window.scrollY <= 2;
+    touchAtTop = atRest();
   }, { passive: true });
   window.addEventListener('touchmove', (e) => {
     if (busy){ e.preventDefault(); return; }
     if (touchY === null) return;
     const dy = e.touches[0].clientY - touchY; // >0 = finger moving down (scrolling up)
     if (!isOpen){ e.preventDefault(); if (dy < -40){ touchY = null; openCover(); } }
-    else if (touchAtTop && window.scrollY <= 2 && dy > 80){ touchY = null; closeCover(); }
+    else if (touchAtTop && atRest() && dy > 0){ e.preventDefault(); if (dy > 80){ touchY = null; closeCover(); } }
   }, { passive: false });
-  window.addEventListener('touchend', () => { touchY = null; }, { passive: true });
+  const touchDone = () => { touchY = null; touching = false; clearTimeout(idleT); idleT = setTimeout(settleScroll, 160); };
+  window.addEventListener('touchend', touchDone, { passive: true });
+  window.addEventListener('touchcancel', touchDone, { passive: true });
 
   window.addEventListener('keydown', (e) => {
     if (e.target.closest('input,textarea,button')) return;
@@ -652,7 +651,7 @@
   // ---------- back to top ----------
   const toTop = document.getElementById('toTop');
   window.addEventListener('scroll', () => { toTop.classList.toggle('show', window.scrollY > 700); }, { passive: true });
-  toTop.addEventListener('click', () => window.scrollTo({ top: REST, behavior: 'smooth' }));
+  toTop.addEventListener('click', () => window.scrollTo({ top: runway(), behavior: 'smooth' }));
 
   // ---------- countdown ----------
   const target = new Date('2026-11-11T11:00:00+07:00').getTime();

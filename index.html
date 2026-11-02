@@ -43,8 +43,7 @@ body{font-family:'Crimson Pro','Noto Serif Tamil',serif;font-size:16px;color:var
    iOS 26 Safari only draws real page pixels behind its status bar / toolbar once the document has scrolled; at 0 it
    paints a flat colour. Scrolling is blocked from JS (app.js), not with overflow:hidden, which also stops that. */
 :root{--rw:120px;--bb:150px}
-body{padding-top:1px}   /* lets the open invitation rest at scroll 1 (app.js REST) */
-body.locked{padding-top:var(--rw)}
+body{padding-top:var(--rw)}
 img{display:block;max-width:100%}
 a{color:inherit}
 h1,h2,h3,.gilda{font-family:'Gilda Display','Noto Serif Tamil',serif;font-weight:400}
@@ -792,7 +791,7 @@ html[lang="ta"] .closing .names[data-i18n]{font-size:30px}
 
 <script>if(/[?&]debug/.test(location.search))document.write('<script src="debug.js?v=5"><\/script>')</script>
 <script src="i18n.js?v=20261103w"></script>
-<script src="app.js?v=20261103y"></script>
+<script src="app.js?v=20261103z"></script>
 <script src="water-gl.js?v=5"></script>
 <script type="module" src="rsvp.js?v=20261103w"></script>
 </body>
