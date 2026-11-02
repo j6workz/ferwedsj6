@@ -17,10 +17,9 @@ service cloud.firestore {
     // ---- Nikah invite ----
     function str(v, min, max) { return v is string && v.size() >= min && v.size() <= max; }
 
-    // Public guestbook: anyone can add one wish and read the latest 40.
-    // No edits, no deletes, no single-document reads, no bulk dumps.
+    // Wishes / RSVPs: write-only. Guests can add one, nobody can read, edit or delete them
+    // through the website or the API (the couple reads them in the Firebase console).
     match /wishes/{id} {
-      allow list: if request.query.limit <= 40;
       allow create: if request.resource.data.keys().hasOnly(
                          ['name', 'attending', 'guests', 'message', 'source', 'submitted_at'])
                     && request.resource.data.keys().hasAll(['name', 'attending', 'guests', 'source', 'submitted_at'])

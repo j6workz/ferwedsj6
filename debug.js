@@ -29,7 +29,7 @@
   function loop(now){
     const d = now - last; last = now; frames++; if (d > worst) worst = d;
     if (now - t0 >= 1000){ fps = Math.round(frames * 1000 / (now - t0)); w = Math.round(worst); frames = 0; worst = 0; t0 = now; }
-    box.textContent = 'fps ' + fps + '  worst ' + w + 'ms  off=' + (off.join(',') || '-') + '\n' + log.join('\n');
+    box.textContent = 'fps ' + fps + '  worst ' + w + 'ms  off=' + (off.join(',') || '-') + '\nwater: ' + (window.__waterGL || 'not loaded') + (document.querySelector('canvas.water-gl') ? ' (canvas ' + document.querySelector('canvas.water-gl').style.height + ')' : '') + '\n' + log.join('\n');
     requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);

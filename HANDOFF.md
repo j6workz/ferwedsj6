@@ -349,8 +349,9 @@ the apiKey only identifies the project. **Security comes entirely from the rules
 
 - The rules file is the **whole** ruleset for `rendezvous-now`, including the bkk trip block. Publish it in
   Firebase console → Firestore → Rules (no firebase CLI here). Publishing a partial file would lock out the other app.
-- `wishes`: anyone can create one (strict schema: field names, types, lengths, `attending` yes/no, guests 0–10,
-  `submitted_at` must be the server time) and read the latest 40 (`limit <= 40`). No get, update, delete.
+- `wishes`: create only (strict schema: field names, types, lengths, `attending` yes/no, guests 0–10,
+  `submitted_at` must be the server time). **No reads**: the page doesn't show other guests' wishes (owner's
+  request, 3 Nov 2026), so read access was removed. No update, delete.
 - `rsvp_contacts`: create only. Phone numbers can't be read through the site or the API; view them in the console.
 - If you add a field to the RSVP write in `rsvp.js`, add it to the rules too, or every submit fails.
 - `rsvps` (v1/v2 pages) is not allowed; those pages are retired.

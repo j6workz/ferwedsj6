@@ -1,7 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
 import {
-  getFirestore, collection, addDoc, serverTimestamp,
-  query, orderBy, limit, onSnapshot
+  getFirestore, collection, addDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -18,48 +17,8 @@ const db = getFirestore(app);
 const form = document.getElementById('rsvpForm');
 const submitBtn = document.getElementById('rsvpSubmit');
 const status = document.getElementById('rsvpStatus');
-const wishesList = document.getElementById('wishesList');
-const countYesEl = document.getElementById('countYes');
-const countNoEl = document.getElementById('countNo');
 
-function escapeHtml(str){
-  return str.replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
-}
-
-function renderWishes(docs){
-  const t = window.i18nText || ((k) => k);
-  if (!docs.length){
-    wishesList.innerHTML = '';   // no wishes yet: show nothing
-    return;
-  }
-  let yes = 0, no = 0;
-  const html = docs.map((d) => {
-    if (d.attending === 'yes') yes += Math.max(1, d.guests || 1); else no++;
-    const tagClass = d.attending === 'yes' ? 'yes' : 'no';
-    const tagText = d.attending === 'yes' ? t('rsvp.countYes') : t('rsvp.countNo');
-    const msg = (d.message || '').trim();
-    return `<div class="wish">
-      <div class="name">${escapeHtml(d.name || '')}<span class="tag ${tagClass}">${escapeHtml(tagText)}</span></div>
-      ${msg ? `<div class="msg">${escapeHtml(msg)}</div>` : ''}
-    </div>`;
-  }).join('');
-  wishesList.innerHTML = html;
-  if (countYesEl) countYesEl.textContent = String(yes);
-  if (countNoEl) countNoEl.textContent = String(no);
-}
-
-try {
-  const wishesQuery = query(collection(db, 'wishes'), orderBy('submitted_at', 'desc'), limit(40));
-  onSnapshot(wishesQuery, (snap) => {
-    const docs = [];
-    snap.forEach((doc) => docs.push(doc.data()));
-    renderWishes(docs);
-  }, () => {
-    renderWishes([]);
-  });
-} catch (e) {
-  renderWishes([]);
-}
+// Guests only send; other guests' wishes are never shown or read (Firestore rules deny reads too).
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();

@@ -3,17 +3,19 @@
 // (assets/bg-cover.webp, center 30% / cover); only the water band of the picture is drawn.
 // No WebGL → nothing changes: Chrome keeps the SVG ripple, WebKit keeps a still lake.
 (function(){
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  if (/[?&]debug/.test(location.search) && /[?&]off=[^&]*\bgl\b/.test(location.search)) return;   // diagnostics: ?debug&off=gl
+  const st = (m) => { window.__waterGL = m; };
+  st('starting');
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return st('off: reduce motion');
+  if (/[?&]debug/.test(location.search) && /[?&]off=[^&]*\bgl\b/.test(location.search)) return st('off: debug');   // diagnostics: ?debug&off=gl
   const opening = document.querySelector('.opening'), scene = opening && opening.querySelector('.scene');
-  if (!scene) return;
+  if (!scene) return st('no scene');
 
   const IMG_W = 1024, IMG_H = 1536, WATER = [0.37, 0.578];   // keep in sync with app.js
   const canvas = document.createElement('canvas');
   canvas.className = 'water-gl';
   canvas.setAttribute('aria-hidden', 'true');
   const gl = canvas.getContext('webgl', { alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false, powerPreference: 'low-power' });
-  if (!gl) return;
+  if (!gl) return st('no webgl context');
 
   const VS = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
   const FS = [
@@ -39,11 +41,12 @@
     '  gl_FragColor = vec4(col, 1.);',
     '}'
   ].join('\n');
-  function sh(type, src){ const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? s : null; }
+  let shaderLog = '';
+  function sh(type, src){ const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (gl.getShaderParameter(s, gl.COMPILE_STATUS)) return s; shaderLog += gl.getShaderInfoLog(s) || '?'; return null; }
   const vs = sh(gl.VERTEX_SHADER, VS), fs = sh(gl.FRAGMENT_SHADER, FS);
-  if (!vs || !fs) return;
+  if (!vs || !fs) return st('shader compile failed: ' + shaderLog);
   const prog = gl.createProgram(); gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
-  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return;
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return st('link failed: ' + gl.getProgramInfoLog(prog));
   gl.useProgram(prog);
   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
@@ -84,8 +87,9 @@
     scene.appendChild(canvas);
     layout();
     document.documentElement.classList.add('gl-water');   // hides the SVG-filter layer
-    ready = true; setRunning(visible);
+    ready = true; setRunning(visible); st('ok');
   };
+  im.onerror = () => st('texture load failed');
   im.src = 'assets/bg-cover.webp';
 
   let visible = true;
