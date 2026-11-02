@@ -48,6 +48,10 @@
   // Close (reverse animation): pull down / wheel up while resting at the top of the invitation.
   const ANIM_MS = reduceMotion ? 50 : 1850;
   let isOpen = false, busy = false, observed = false, hideTimer = 0;
+  // Bar colour (Safari tints the top edge with the page background): hold the old colour until the cover is half
+  // way through opening/closing, so the tint never flashes ahead of what's on screen.
+  let tcHoldUntil = 0, requestTC = () => {};
+  const holdTC = () => { tcHoldUntil = performance.now() + ANIM_MS * 0.5; setTimeout(() => requestTC(), ANIM_MS * 0.5 + 30); };
   let atTopSince = performance.now(); // wheel-up only closes after resting at the top, so scroll momentum can't trigger it
   settleScroll();
 
@@ -57,7 +61,7 @@
 
   function openCover(){
     if (isOpen || busy) return;
-    isOpen = true; busy = true;
+    isOpen = true; busy = true; holdTC();
     window.scrollTo(0, runway());
     cover.classList.add('open');
     if (!observed){ observed = true; document.querySelectorAll('#inv [data-r]').forEach((el) => revealer.observe(el)); }
@@ -72,7 +76,7 @@
   }
   function closeCover(){
     if (!isOpen || busy) return;
-    isOpen = false; busy = true;
+    isOpen = false; busy = true; holdTC();
     clearTimeout(hideTimer);
     window.scrollTo(0, runway());              // already there (close only fires at rest): no visible move
     document.body.classList.add('locked');
@@ -589,10 +593,12 @@
   // ---------- Safari / Android top bar follows what is at the top of the screen ----------
   // (the page already draws under it: viewport-fit=cover; this tints the bar and the overscroll area to match)
   const tcMeta = document.querySelector('meta[name="theme-color"]');
-  const TC = { cover: '#9ba253', lake: '#716837', paper: '#f4efe3', deep: '#173628' };
+  // lake: average of what's rendered under the status bar at rest (sunset sky + garlands), so Safari's top-edge tint blends in
+  const TC = { cover: '#9ba253', lake: '#b89c73', paper: '#f4efe3', deep: '#173628' };
   let tcNow = '';
   const setTC = (c) => { if (c === tcNow) return; tcNow = c; if (tcMeta) tcMeta.content = c; document.documentElement.style.backgroundColor = c; document.body.style.backgroundColor = c; };   // Safari 26 samples body at scroll 0
   const topColour = () => {
+    if (performance.now() < tcHoldUntil && tcNow) return tcNow;
     if (!isOpen) return TC.cover;
     for (const sec of document.querySelectorAll('#inv > section')){
       const r = sec.getBoundingClientRect();
@@ -611,6 +617,7 @@
   const updateTC = () => { cancelAnimationFrame(tcRaf); tcRaf = requestAnimationFrame(() => setTC(topColour())); };
   window.addEventListener('scroll', updateTC, { passive: true });
   new MutationObserver(updateTC).observe(cover, { attributes: true, attributeFilter: ['class', 'style'] });
+  requestTC = updateTC;
   updateTC();
 
   // ---------- whole-pixel sections ----------
