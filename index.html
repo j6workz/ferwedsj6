@@ -185,6 +185,9 @@ section + section{margin-top:-1px}   /* sections end on fractional pixels: overl
   -webkit-mask-image:linear-gradient(180deg,transparent var(--wt,45%),#000 calc(var(--wt,45%) + 18px),#000 calc(100% - var(--wb,45%) - 14px),transparent calc(100% - var(--wb,45%)));
   mask-image:linear-gradient(180deg,transparent var(--wt,45%),#000 calc(var(--wt,45%) + 18px),#000 calc(100% - var(--wb,45%) - 14px),transparent calc(100% - var(--wb,45%)))}
 .wk .opening .water{display:none}
+.opening .water-gl{position:absolute;left:0;width:100%;pointer-events:none;
+  -webkit-mask-image:linear-gradient(180deg,transparent,#000 18px,#000 calc(100% - 14px),transparent);mask-image:linear-gradient(180deg,transparent,#000 18px,#000 calc(100% - 14px),transparent)}
+.gl-water .opening .water{display:none}
 /* falling leaves/petals that settle on the lakeside grass */
 .opening .fall{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden}
 .opening .fall > img{position:absolute;left:0;top:0;will-change:transform}
@@ -786,6 +789,7 @@ html[lang="ta"] .closing .names[data-i18n]{font-size:30px}
 <script>if(/[?&]debug/.test(location.search))document.write('<script src="debug.js?v=2"><\/script>')</script>
 <script src="i18n.js?v=20261103j"></script>
 <script src="app.js?v=20261103k"></script>
+<script src="water-gl.js?v=1"></script>
 <script type="module" src="rsvp.js?v=20261103b"></script>
 </body>
 </html>
