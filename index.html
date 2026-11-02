@@ -155,7 +155,7 @@ section + section{margin-top:-1px}   /* sections end on fractional pixels: overl
 /* the floral card: a scaled copy of the flower band (.floral-fill), tucked behind the envelope front */
 .fcard{position:absolute;overflow:hidden;border-radius:10px;box-shadow:0 10px 26px rgba(15,39,28,.28);pointer-events:none}
 .fcard-in{position:absolute;left:0;top:0;transform-origin:0 0}
-.env .fcard{left:7%;top:22px;z-index:1;transition:transform .45s cubic-bezier(.5,0,.75,0)}
+.env .fcard{top:22px;z-index:1;transition:transform .45s cubic-bezier(.5,0,.75,0)}
 #cover.open .env .fcard{transform:translateY(var(--peek,0px));transition:transform .55s cubic-bezier(.2,.8,.2,1) .25s}
 body > .fcard{left:0;top:0;transform-origin:0 0;z-index:905}
 #cover .bg{position:absolute;inset:0;background:url(assets/bg-opening-3.webp) center/cover,var(--deep);animation:kenburns 40s ease-in-out infinite alternate}
@@ -829,7 +829,7 @@ html[lang="ta"] .closing .names[data-i18n]{font-size:30px}
 
 <script>if(/[?&]debug/.test(location.search))document.write('<script src="debug.js?v=6"><\/script>')</script>
 <script src="i18n.js?v=20261103w"></script>
-<script src="app.js?v=20261104k"></script>
+<script src="app.js?v=20261104l"></script>
 <script src="water-gl.js?v=5"></script>
 <script type="module" src="rsvp.js?v=20261103w"></script>
 </body>

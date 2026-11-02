@@ -91,13 +91,19 @@
   function buildEnvelopeCard(){
     if (!bridge || !env) return;
     if (ecard) ecard.remove();
-    const cw = env.clientWidth * 0.86;
-    ecard = floralCard(cw / bridge.clientWidth);
+    // fit inside the envelope front both ways (the band's aspect varies with the screen), centred, 22px below its top
+    const pap = env.querySelector('.paper'), W = bridge.clientWidth, H = bridge.clientHeight;
+    const cw = Math.min(env.clientWidth * 0.86, (pap.offsetHeight - 22 - 14) * W / H);
+    ecard = floralCard(cw / W);
+    ecard.style.left = ((env.clientWidth - cw) / 2) + 'px';
     ecard.style.setProperty('--peek', -Math.round(parseFloat(ecard.style.height) * 0.38) + 'px');
     env.insertBefore(ecard, env.firstChild);
   }
   buildEnvelopeCard();
-  window.addEventListener('resize', () => { if (!busy && !isOpen) buildEnvelopeCard(); });
+  const rebuildCard = () => { if (!busy && !isOpen) buildEnvelopeCard(); };
+  window.addEventListener('resize', rebuildCard);
+  window.addEventListener('load', rebuildCard);                       // envelope height settles once fonts/images are in
+  if (document.fonts) document.fonts.ready.then(rebuildCard);
   const lerp = (a, b, t) => a + (b - a) * t, smooth = (t) => t * t * (3 - 2 * t);
   // screen rect → document position (the card scrolls with the page, never fixed). q = 0 in the envelope … 1 on the
   // band: corners straighten and the edges feather out, so the card melts into the identical band underneath.
