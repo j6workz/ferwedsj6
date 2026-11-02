@@ -165,6 +165,12 @@ body > .fcard{left:0;top:0;transform-origin:0 0;z-index:905}
 /* garden → lake: a deep band of bouquets the page glides through when the envelope opens (never scrolled by hand) */
 /* The band's box reaches 100px into the garden above and the lake below (transparent there), so the flowers that
    cover both joins sit inside it: a plain overflow:hidden trims only the sides, on every browser. */
+/* Once open, the garden and the band leave the page (body.opened) and this short strip takes their place above the
+   lake: enough runway for Safari to draw the lake behind the clock, and momentum can't coast up into the band. */
+body.opened #cover,body.opened #bridge{display:none}
+#runway{display:none;position:relative;z-index:901;height:var(--rw);margin-bottom:-1px;background:#b89c73;pointer-events:none;overflow:hidden}
+body.opened #runway{display:block}
+#runway .floral-fill{position:absolute;left:0;right:0;top:0;bottom:0;height:auto}
 #bridge{position:relative;z-index:901;pointer-events:none;overflow:hidden;height:calc(72lvh + 200px);margin:-101px 0 -100px;background:var(--bridge-bg) 0 100px/100% calc(100% - 200px) no-repeat}
 .floral-fill{position:relative;max-width:var(--col);height:100%;margin:0 auto}
 #bridge .in{position:absolute;left:0;right:0;top:100px;bottom:100px;max-width:var(--col);height:auto;margin:0 auto}
@@ -565,6 +571,12 @@ html[lang="ta"] .closing .names[data-i18n]{font-size:30px}
   <img class="seam" src="assets/floral-band.webp"      alt="" style="left:-14%;bottom:-75px;width:128%">
 </div></div>
 
+<div id="runway" aria-hidden="true"><div class="floral-fill">
+  <img src="assets/floral-band.webp"    alt="" style="left:-14%;top:-30px;width:128%">
+  <img src="assets/floral-bouquet.webp" alt="" style="left:-10%;top:-40px;width:40%">
+  <img src="assets/floral-bouquet.webp" alt="" class="fx" style="right:-10%;top:-36px;width:40%">
+</div></div>
+
 <main id="inv">
 
 <!-- ===== opening scene ===== -->
@@ -836,7 +848,7 @@ html[lang="ta"] .closing .names[data-i18n]{font-size:30px}
 
 <script>if(/[?&]debug/.test(location.search))document.write('<script src="debug.js?v=6"><\/script>')</script>
 <script src="i18n.js?v=20261103w"></script>
-<script src="app.js?v=20261104n"></script>
+<script src="app.js?v=20261104o"></script>
 <script src="water-gl.js?v=6"></script>
 <script type="module" src="rsvp.js?v=20261103w"></script>
 </body>

@@ -129,6 +129,8 @@
     if (!observed){ observed = true; document.querySelectorAll('#inv [data-r]').forEach((el) => revealer.observe(el)); }
     clearTimeout(hideTimer);
     const done = () => {
+      document.body.classList.add('opened');          // garden + band leave the page; the short runway strip stays
+      window.scrollTo(0, lakeTop());                   // same frame: the lake doesn't move on screen
       isOpen = true;
       document.body.classList.remove('locked');
       busy = false;
@@ -160,6 +162,8 @@
     busy = true; isOpen = false;
     clearTimeout(hideTimer);
     document.body.classList.add('locked');
+    document.body.classList.remove('opened');         // garden + band back above the lake …
+    window.scrollTo(0, lakeTop());                     // … and jump past them in the same frame (nothing moves)
     let card = null;
     if (ecard && bridge && peekRect && !reduceMotion){ card = floralCard(1); card.style.visibility = 'hidden'; card.style.boxShadow = 'none'; document.body.appendChild(card); }
     cover.classList.add('unsink'); cover.classList.remove('sink');   // envelope rises and fades back in during the glide
@@ -692,6 +696,7 @@
   let tcNow = '';
   const setTC = (c) => { if (c === tcNow) return; tcNow = c; if (tcMeta) tcMeta.content = c; document.documentElement.style.backgroundColor = c; document.body.style.backgroundColor = c; };   // Safari 26 samples body at scroll 0
   const topColour = () => {
+    if (document.body.classList.contains('opened') && window.scrollY < runway()) return TC.lake;   // runway strip at the top
     if (cover.getBoundingClientRect().bottom > 1) return TC.cover;           // garden at the top of the screen
     if (bridge && bridge.getBoundingClientRect().bottom > 1) return TC.bridge;
     for (const sec of document.querySelectorAll('#inv > section')){
