@@ -17,6 +17,15 @@
   }, { threshold: 0.12, rootMargin: '0px 0px -5% 0px' });
 
   const cover = document.getElementById('cover');
+  // Runway (see body.locked in index.html): while the cover shows, the page sits scrolled to --rw so iOS 26 Safari
+  // draws the cover picture behind its bars. Keep it pinned there; JS gestures below still open the cover.
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  const runway = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--rw')) || 0;
+  const pinRunway = () => { if (document.body.classList.contains('locked') && Math.abs(window.scrollY - runway()) > 1) window.scrollTo(0, runway()); };
+  pinRunway();
+  window.addEventListener('load', pinRunway);
+  window.addEventListener('pageshow', pinRunway);
+  window.addEventListener('scroll', pinRunway, { passive: true });
   // the cover animates in straight away
   requestAnimationFrame(() => setTimeout(() => {
     cover.querySelectorAll('[data-r]').forEach((el) => el.classList.add('in'));
@@ -36,14 +45,14 @@
   function openCover(){
     if (isOpen || busy) return;
     isOpen = true; busy = true;
-    window.scrollTo(0, 0);
+    pinRunway();
     cover.classList.add('open');
     if (!observed){ observed = true; document.querySelectorAll('#inv [data-r]').forEach((el) => revealer.observe(el)); }
     clearTimeout(hideTimer);
     hideTimer = setTimeout(() => {
       cover.style.display = 'none';
-      window.scrollTo(0, 0);
-      document.body.classList.remove('locked'); // unlock only once the lake scene is fully in view
+      document.body.classList.remove('locked'); // unlock only once the lake scene is fully in view; dropping the
+      window.scrollTo(0, 0);                     // runway and scrolling to 0 together leave the view unchanged
       busy = false;
       guardUntil = performance.now() + 450;
       atTopSince = performance.now();
@@ -55,8 +64,8 @@
     clearTimeout(hideTimer);
     cover.style.display = '';
     void cover.offsetWidth; // commit the "open" state so removing it animates in reverse
-    document.body.classList.add('locked');
-    window.scrollTo(0, 0);
+    document.body.classList.add('locked');     // runway back, then sit on it: same view as scroll 0 without it
+    window.scrollTo(0, runway());
     requestAnimationFrame(() => cover.classList.remove('open'));
     hideTimer = setTimeout(() => { busy = false; guardUntil = performance.now() + 450; }, ANIM_MS);
   }
