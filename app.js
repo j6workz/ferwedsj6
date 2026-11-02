@@ -22,47 +22,606 @@
     cover.querySelectorAll('[data-r]').forEach((el) => el.classList.add('in'));
   }, 60));
 
-  document.getElementById('openBtn').addEventListener('click', () => {
+  // ---------- open / close the cover ----------
+  // Open: button, scroll/wheel down, swipe up or ArrowDown/PageDown/Space on the cover.
+  // Close (reverse animation): scroll/swipe further up while already at the top of the invitation.
+  const ANIM_MS = reduceMotion ? 50 : 1850;
+  let isOpen = false, busy = false, observed = false, hideTimer = 0;
+  let atTopSince = performance.now(); // wheel-up only closes after resting at the top, so scroll momentum can't trigger it
+
+  // Scroll guard: while the cover animates (and while the wheel/trackpad momentum that opened it
+  // is still streaming in) page scrolling is swallowed, so the lake scene is never skipped.
+  let guardUntil = 0, lastWheel = 0;
+
+  function openCover(){
+    if (isOpen || busy) return;
+    isOpen = true; busy = true;
     window.scrollTo(0, 0);
     cover.classList.add('open');
-    document.body.classList.remove('locked');
-    document.querySelectorAll('#inv [data-r]').forEach((el) => revealer.observe(el));
-    setTimeout(() => { cover.style.display = 'none'; }, 1400);
+    if (!observed){ observed = true; document.querySelectorAll('#inv [data-r]').forEach((el) => revealer.observe(el)); }
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => {
+      cover.style.display = 'none';
+      window.scrollTo(0, 0);
+      document.body.classList.remove('locked'); // unlock only once the lake scene is fully in view
+      busy = false;
+      guardUntil = performance.now() + 450;
+      atTopSince = performance.now();
+    }, ANIM_MS);
+  }
+  function closeCover(){
+    if (!isOpen || busy) return;
+    isOpen = false; busy = true;
+    clearTimeout(hideTimer);
+    cover.style.display = '';
+    void cover.offsetWidth; // commit the "open" state so removing it animates in reverse
+    document.body.classList.add('locked');
+    window.scrollTo(0, 0);
+    requestAnimationFrame(() => cover.classList.remove('open'));
+    hideTimer = setTimeout(() => { busy = false; guardUntil = performance.now() + 450; }, ANIM_MS);
+  }
+  document.getElementById('openBtn').addEventListener('click', openCover);
+
+  window.addEventListener('scroll', () => { if (window.scrollY > 2) atTopSince = Infinity; else if (atTopSince === Infinity) atTopSince = performance.now(); }, { passive: true });
+
+  window.addEventListener('wheel', (e) => {
+    const now = performance.now();
+    const streaming = now - lastWheel < 180; // same gesture / momentum still arriving
+    lastWheel = now;
+    if (busy || now < guardUntil){
+      e.preventDefault();
+      if (streaming) guardUntil = Math.max(guardUntil, now + 180);
+      return;
+    }
+    if (!isOpen){ e.preventDefault(); if (e.deltaY > 8) openCover(); return; }
+    if (e.deltaY < -8 && window.scrollY <= 2 && now - atTopSince > 350) closeCover();
+  }, { passive: false });
+
+  let touchY = null, touchAtTop = false;
+  window.addEventListener('touchstart', (e) => {
+    touchY = e.touches[0].clientY;
+    touchAtTop = window.scrollY <= 2;
+  }, { passive: true });
+  window.addEventListener('touchmove', (e) => {
+    if (busy){ e.preventDefault(); return; }
+    if (touchY === null) return;
+    const dy = e.touches[0].clientY - touchY; // >0 = finger moving down (scrolling up)
+    if (!isOpen){ e.preventDefault(); if (dy < -40){ touchY = null; openCover(); } }
+    else if (touchAtTop && window.scrollY <= 2 && dy > 80){ touchY = null; closeCover(); }
+  }, { passive: false });
+  window.addEventListener('touchend', () => { touchY = null; }, { passive: true });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.target.closest('input,textarea,button')) return;
+    const scrollKeys = ['ArrowDown', 'PageDown', ' ', 'Enter'];
+    if (!isOpen && scrollKeys.includes(e.key)){ e.preventDefault(); openCover(); }
+    else if (busy && scrollKeys.includes(e.key)) e.preventDefault();
   });
 
-  // ---------- birds over the opening scene ----------
+  // ---------- lake scene geometry ----------
+  // The background is cover-fitted (center 30%), so map the picture's water / grass bands to pixels.
+  const opening = document.querySelector('.opening');
+  const IMG_W = 1024, IMG_H = 1536;
+  const WATER = [0.37, 0.578], GROUND = [0.585, 0.94];
+  let ground = { top: 0, bottom: 0 };
+  function layoutScene(){
+    const w = opening.clientWidth, h = opening.clientHeight;
+    const s = Math.max(w / IMG_W, h / IMG_H), ih = IMG_H * s, oy = (h - ih) * 0.30;
+    const y = (f) => oy + f * ih;
+    opening.style.setProperty('--wt', y(WATER[0]).toFixed(0) + 'px');
+    opening.style.setProperty('--wb', (h - y(WATER[1])).toFixed(0) + 'px');
+    ground = { top: y(GROUND[0]), bottom: Math.min(h * 0.8, y(GROUND[1])), w, h, feet: h * 0.71 }; // below ~80% the scene fades into the dark band
+    // rowboat on the right part of the lake (left of it is hidden behind the couple)
+    const boat = document.getElementById('boat');
+    if (boat){
+      // sprite cell 307x229 source px, keel centre at (183.5, 170); ~112px wide on a phone
+      const k = Math.min(150, Math.max(104, w * 0.29)) / 307;
+      boat.style.width = (307 * k).toFixed(1) + 'px'; boat.style.height = (229 * k).toFixed(1) + 'px';
+      boat.style.transform = 'translate(' + (w - 62 - 183.5 * k).toFixed(0) + 'px,' + (y(0.5) - 170 * k).toFixed(0) + 'px)';
+    }
+  }
+  layoutScene();
+  window.addEventListener('resize', layoutScene);
+  // the couple stands in the same depth layer as the petals and cats: sort by the feet line
+  const coupleFig = document.getElementById('coupleFig');
+  const sortCouple = () => { if (coupleFig) coupleFig.style.zIndex = String(Math.round(ground.feet)); };
+  sortCouple(); window.addEventListener('resize', sortCouple);
+
+  // ---------- birds: each with its own speed, height, arc, direction and wingbeat ----------
   const birds = document.getElementById('birds');
   if (birds && !reduceMotion){
     const w = birds.getBoundingClientRect().width || 430;
-    for (let i = 0; i < 4; i++){
-      const b = document.createElement('img');
-      b.src = '../v3/assets/bird.webp'; b.alt = '';
-      b.style.top = (10 + i * 18 + Math.random() * 10) + '%';
-      b.style.width = (22 + Math.random() * 16) + 'px';
-      b.style.setProperty('--w', (w + 120) + 'px');
-      b.style.animationDuration = (11 + Math.random() * 7).toFixed(1) + 's';
-      b.style.animationDelay = (-Math.random() * 14).toFixed(1) + 's';
+    const rnd = (a, b) => a + Math.random() * (b - a);
+    for (let i = 0; i < 5; i++){
+      // 4-frame wingbeat strip; some birds flap twice then glide
+      const b = document.createElement('span');
+      const rtl = Math.random() < 0.35;
+      b.className = 'bird' + (rtl ? ' rtl' : '');
+      b.innerHTML = '<i class="sw' + (Math.random() < 0.55 ? ' glide' : '') + '"></i>';
+      b.style.top = rnd(0, 85).toFixed(0) + '%';
+      b.style.width = rnd(16, 32).toFixed(0) + 'px';
+      b.style.setProperty('--w', ((rtl ? -1 : 1) * (w + 120)) + 'px');
+      ['--a1', '--a2', '--a3'].forEach((v) => b.style.setProperty(v, rnd(-34, 24).toFixed(0) + 'px'));
+      b.style.setProperty('--flap', rnd(0.32, 0.5).toFixed(2) + 's');
+      b.style.animationDuration = rnd(14, 30).toFixed(1) + 's';
+      b.style.animationDelay = (-rnd(0, 30)).toFixed(1) + 's';
+      b.style.animationTimingFunction = Math.random() < 0.5 ? 'linear' : 'ease-in-out';
       birds.appendChild(b);
     }
   }
 
-  // ---------- a few drifting leaves ----------
-  if (!reduceMotion){
-    const layer = document.getElementById('leaves');
-    const leaves = ['../v3/assets/leaf-a.webp', '../v3/assets/leaf-b.webp'];
-    for (let i = 0; i < 9; i++){
+  // ---------- leaves & petals: fall in the lake scene and settle on the grass ----------
+  // Depth: pieces landing further back (higher on screen) are smaller, nearer ones larger and on top.
+  const fall = document.getElementById('fall');
+  if (fall && !reduceMotion && fall.animate){
+    const kinds = ['leaf-1', 'leaf-2', 'leaf-3', 'petal-1', 'petal-2', 'petal-1', 'petal-2'].map((n) => 'assets/' + n + '.webp');
+    const MAX_ON_GROUND = 60;
+    const landed = [];
+    const rnd = (a, b) => a + Math.random() * (b - a);
+
+    function piece(){
+      const t = Math.pow(Math.random(), 0.75);            // 0 = far, 1 = near
+      const y = ground.top + t * (ground.bottom - ground.top);
+      const x = rnd(-10, ground.w - 10);
       const el = document.createElement('img');
-      el.src = leaves[i % 2]; el.alt = '';
-      el.style.left = (Math.random() * 100) + '%';
-      el.style.width = (14 + Math.random() * 14) + 'px';
-      el.style.opacity = (0.5 + Math.random() * 0.4).toFixed(2);
-      el.style.setProperty('--dx', (Math.random() * 140 - 70).toFixed(0) + 'px');
-      el.style.setProperty('--rot', (180 + Math.random() * 480).toFixed(0) + 'deg');
-      el.style.animationDuration = (12 + Math.random() * 9).toFixed(1) + 's';
-      el.style.animationDelay = (-Math.random() * 20).toFixed(1) + 's';
-      layer.appendChild(el);
+      el.src = kinds[(Math.random() * kinds.length) | 0]; el.alt = '';
+      el.style.width = (9 + t * 20).toFixed(1) + 'px';
+      el.style.zIndex = String(Math.round(y));
+      el.style.filter = 'brightness(' + (0.8 + t * 0.2).toFixed(2) + ')';
+      return { el, x, y, rot: rnd(0, 360) };
+    }
+    function settle(p){
+      landed.push(p);
+      if (landed.length > MAX_ON_GROUND){
+        const old = landed.shift().el;
+        old.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 1500, fill: 'forwards' }).onfinish = () => old.remove();
+      }
+    }
+    function lie(p){ return 'translate(' + p.x.toFixed(1) + 'px,' + p.y.toFixed(1) + 'px) scaleY(.5) rotate(' + p.rot.toFixed(0) + 'deg)'; }
+    // a cat batting a petal: it flips up and lands a little further on
+    window.__kickPetal = (p, dir) => {
+      if (p.busy) return;
+      p.busy = true;
+      const from = lie(p);
+      p.x = Math.max(0, Math.min(ground.w - 10, p.x + dir * rnd(14, 40)));
+      p.y = Math.max(ground.top, Math.min(ground.bottom, p.y + rnd(-10, 10)));
+      const r0 = p.rot; p.rot += rnd(120, 300) * dir;
+      const mid = 'translate(' + ((p.x + (p.x - dir * 20)) / 2).toFixed(1) + 'px,' + (p.y - rnd(22, 40)).toFixed(1) + 'px) scaleY(1) rotate(' + ((r0 + p.rot) / 2).toFixed(0) + 'deg)';
+      p.el.style.zIndex = String(Math.round(p.y));
+      const a = p.el.animate([{ transform: from }, { transform: mid, offset: 0.45 }, { transform: lie(p) }], { duration: 750, easing: 'cubic-bezier(.3,.6,.4,1)' });
+      a.onfinish = () => { p.el.style.transform = lie(p); p.busy = false; };
+    };
+    window.__petals = landed;
+
+    // a few already lying on the grass
+    for (let i = 0; i < 16; i++){
+      const p = piece();
+      p.el.style.transform = lie(p);
+      fall.appendChild(p.el); settle(p);
+    }
+
+    function drop(){
+      const p = piece();
+      const x0 = p.x + rnd(-80, 80), sw = rnd(18, 46), spin = rnd(160, 520) * (Math.random() < 0.5 ? -1 : 1);
+      const at = (fx, fy, r, sy) => 'translate(' + fx.toFixed(1) + 'px,' + fy.toFixed(1) + 'px) scaleY(' + sy + ') rotate(' + r.toFixed(0) + 'deg)';
+      fall.appendChild(p.el);
+      const a = p.el.animate([
+        { transform: at(x0, -40, 0, 1), opacity: 0 },
+        { transform: at(x0 + sw, p.y * 0.25, spin * 0.25, 1), opacity: 1, offset: 0.25 },
+        { transform: at(x0 - sw, p.y * 0.55, spin * 0.55, 1), offset: 0.55 },
+        { transform: at(p.x + sw * 0.5, p.y * 0.85, spin * 0.85, 0.9), offset: 0.85 },
+        { transform: at(p.x, p.y, p.rot, 0.5), opacity: 1 }
+      ], { duration: rnd(6500, 11000) * (0.6 + 0.4 * p.y / ground.h), easing: 'cubic-bezier(.35,.1,.55,1)', fill: 'forwards' });
+      a.onfinish = () => { p.el.style.transform = lie(p); a.cancel(); settle(p); };
+    }
+
+    let timer = 0, visible = false;
+    const loop = () => { if (visible && !document.hidden) drop(); timer = setTimeout(loop, rnd(700, 1600)); };
+    new IntersectionObserver((es) => { visible = es[0].isIntersecting; }).observe(opening);
+    loop();
+  }
+
+  // ---------- cats in the lake scene ----------
+  // Jessy pounces on the fallen petals around the couple's feet; Yuzu stalks and leaps at a butterfly.
+  const actors = document.getElementById('fall');
+  if (actors && !reduceMotion){
+    const rnd = (a, b) => a + Math.random() * (b - a);
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    // play band: just around the couple's feet line
+    const band = () => ({ top: ground.h * 0.66, bottom: ground.h * 0.785 }); // straddles the couple's feet line (0.71)
+    const depth = (y) => { const b = band(); return clamp((y - b.top) / (b.bottom - b.top), 0, 1); };
+
+    // --- sprite-sheet actors: horizontal strips of frames, cw x ch source px each; (ax, ay) = the fixed
+    //     anchor inside a cell (feet for cats). Numbers come from the slicer (tools/slice.py). ---
+    const SHEETS = {
+      run:      { src: 'assets/cat-jessy-run.webp',        n: 4, cw: 361, ch: 203, ax: 186,   ay: 200 },
+      pounce:   { src: 'assets/cat-jessy-pounce-set.webp', n: 4, cw: 330, ch: 282, ax: 162,   ay: 278 },
+      roll:     { src: 'assets/cat-jessy-roll.webp',       n: 4, cw: 326, ch: 271, ax: 159.5, ay: 267 },
+      ySit:     { src: 'assets/cat-yuzu-sit-set.webp',         n: 3, cw: 178, ch: 232, ax: 103.5, ay: 229 },
+      yTurn:    { src: 'assets/cat-yuzu-turn.webp',        n: 2, cw: 291, ch: 234, ax: 142.5, ay: 230 },
+      yWiggle:  { src: 'assets/cat-yuzu-wiggle.webp',      n: 2, cw: 362, ch: 203, ax: 153,   ay: 200 },
+      yLeap:    { src: 'assets/cat-yuzu-leap.webp',        n: 3, cw: 287, ch: 333, ax: 143,   ay: 329 },
+      ySwat:    { src: 'assets/cat-yuzu-swat.webp',        n: 2, cw: 240, ch: 336, ax: 119.5, ay: 333 }
+    };
+    Object.values(SHEETS).forEach((sh) => { const i = new Image(); i.src = sh.src; });
+    function makeSprite(pxPerSrc){
+      const el = document.createElement('div'); el.className = 'actor sprite';
+      actors.appendChild(el);
+      return { el, k: pxPerSrc, x: 0, y: 0, dir: 1, lift: 0, v: 0, walked: 0, sheet: null, frame: -1 };
+    }
+    function show(c, name, frame){
+      const sh = SHEETS[name];
+      if (c.sheet !== name){ c.sheet = name; c.el.style.backgroundImage = 'url(' + sh.src + ')'; c.el.style.backgroundSize = (sh.n * 100) + '% 100%'; c.frame = -1; }
+      if (c.frame !== frame){ c.frame = frame; c.el.style.backgroundPositionX = (frame / (sh.n - 1) * 100) + '%'; }
+    }
+    // ease the speed toward `want` (px/s): cats speed up and slow down instead of snapping
+    function steer(c, tx, ty, maxSp, accel, dt){
+      const dx = tx - c.x, dy = ty - c.y, d = Math.hypot(dx, dy);
+      const want = Math.min(maxSp, d * 2.4);                 // slow down over the last stretch
+      c.v = (c.v || 0) + Math.max(-accel * dt * 1.6, Math.min(accel * dt, want - (c.v || 0)));
+      const m = Math.min(d, c.v * dt);
+      if (d > 0.01){ c.x += dx / d * m; c.y += dy / d * m; }
+      c.walked = (c.walked || 0) + m;
+      return d;
+    }
+    function drawSprite(c){
+      const sh = SHEETS[c.sheet], k = c.k * (0.7 + 0.3 * depth(c.y));
+      const w = sh.cw * k, h = sh.ch * k;
+      c.el.style.width = w.toFixed(1) + 'px'; c.el.style.height = h.toFixed(1) + 'px';
+      c.el.style.zIndex = String(Math.round(c.y));
+      c.el.style.transformOrigin = (sh.ax * k).toFixed(1) + 'px ' + (sh.ay * k).toFixed(1) + 'px';   // flip/rock around the feet
+      c.el.style.transform = 'translate(' + (c.x - sh.ax * k).toFixed(1) + 'px,' + (c.y - sh.ay * k + c.lift).toFixed(1) + 'px) scaleX(' + c.dir + ')' + (c.rot ? ' rotate(' + c.rot.toFixed(2) + 'deg)' : '');
+    }
+
+    // --- Jessy & the petals: run → crouch & wiggle → leap → land on the petal (it flips away) → bat it → roll / rest ---
+    const jessy = makeSprite(96 / 361);          // run frame ≈ 96px wide when nearest
+    jessy.x = ground.w * 0.7; jessy.y = band().bottom - 6;
+    const ROLL_SEQ = [0, 1, 2, 1, 2, 3];
+    let jDur = 4, jMode = 'rest', jT = 0, jTarget = null, jPetal = null, jRollSeq = 0;
+    show(jessy, 'roll', 0);
+    function jessyPick(){
+      const b = band();
+      const near = (window.__petals || []).filter((p) => !p.busy && p.y >= b.top - 6 && p.y <= b.bottom + 6 && Math.abs(p.x - jessy.x) > 30 && Math.abs(p.x - jessy.x) < ground.w * 0.6);
+      jPetal = near.length ? near[(Math.random() * near.length) | 0] : null;
+      jTarget = jPetal ? { x: jPetal.x, y: clamp(jPetal.y + 4, b.top, b.bottom) } : { x: rnd(ground.w * 0.08, ground.w * 0.92), y: rnd(b.top, b.bottom) };
+      jessy.dir = jTarget.x >= jessy.x ? 1 : -1;            // decided once per dash: no flip-flopping on the way
+      jessy.v = 0; jMode = 'run'; jT = 0;
+    }
+    function jessyStep(dt){
+      jT += dt;
+      jessy.lift = 0;
+      switch (jMode){
+        case 'run': {
+          const s = 0.7 + 0.3 * depth(jessy.y);
+          const stopShort = 30 * s;                          // stop a body-length before the petal, then pounce onto it
+          const d = steer(jessy, jTarget.x - jessy.dir * stopShort, jTarget.y, 105 * s, 220 * s, dt);
+          const f = Math.floor(jessy.walked / (12 * s)) % 4; // one frame per ~12px: legs match the ground speed
+          show(jessy, 'run', f);
+          jessy.lift = [-2.5, -0.8, 0, -1.2][f] * s * Math.min(1, jessy.v / (80 * s));
+          if (d < 3 || (d < 14 && jessy.v < 25 * s)){ jMode = 'crouch'; jT = 0; jDur = rnd(0.45, 0.85); }
+          break;
+        }
+        case 'crouch':   // bum wiggle before the jump
+          show(jessy, 'pounce', 0);
+          jessy.x += Math.sin(jT * 40) * 0.25;
+          if (jT > jDur){ jMode = 'leap'; jT = 0; }
+          break;
+        case 'leap': {
+          show(jessy, 'pounce', 1);
+          const u = Math.min(1, jT / 0.32);
+          jessy.lift = -Math.sin(Math.PI * u) * 14;
+          jessy.x += jessy.dir * 85 * dt;
+          if (u >= 1){ jMode = 'land'; jT = 0; if (jPetal && window.__kickPetal) window.__kickPetal(jPetal, jessy.dir); }
+          break;
+        }
+        case 'land':
+          show(jessy, 'pounce', 2);
+          if (jT > 0.4){ jMode = 'bat'; jT = 0; jDur = rnd(0.7, 1.2); }
+          break;
+        case 'bat':
+          show(jessy, 'pounce', 3);
+          if (jT > jDur){
+            const r = Math.random();
+            if (r < 0.2){ jMode = 'roll'; jT = 0; jRollSeq = 0; }
+            else if (r < 0.75){ jMode = 'rest'; jT = 0; jDur = rnd(4, 9); }
+            else jessyPick();
+          }
+          break;
+        case 'roll': {
+          const i = Math.floor(jT / 0.4);
+          if (i >= ROLL_SEQ.length){ jMode = 'rest'; jT = 0; jDur = rnd(4, 9); break; }
+          show(jessy, 'roll', ROLL_SEQ[i]);
+          break;
+        }
+        case 'rest':
+          show(jessy, 'roll', 3);
+          if (jT > jDur) jessyPick();
+          break;
+      }
+    }
+
+    // --- Yuzu (left side of the meadow) ---
+    // Walking is a cut-out rig: body + legs swung from hip and shoulder, so the legs truly alternate at any
+    // speed (creep / walk / trot). Other moments are posed frames: turn, sit & watch, wiggle, leap, swat.
+    const RIG = { bodyW: 307, bodyH: 167, ground: 200.3, ax: 167,
+      hind:  { src: 'assets/yuzu-rig-hind.webp',  x: 103.7, y: 137, w: 51, h: 56, px: 25.5, py: 0 },
+      front: { src: 'assets/yuzu-rig-front.webp', x: 189.4, y: 137, w: 42, h: 63, px: 15.3, py: 0 } };
+    const GAITS = {   // amp = leg swing (deg), duty = share of the cycle a paw is planted, ph = phase per leg
+      creep: { amp: 13, duty: 0.66, crouch: 0.86, bob: 0.4, ph: { hn: 0, fn: 0.25, hf: 0.5, ff: 0.75 } },
+      walk:  { amp: 17, duty: 0.6,  crouch: 1,    bob: 0.8, ph: { hn: 0, fn: 0.25, hf: 0.5, ff: 0.75 } },
+      trot:  { amp: 24, duty: 0.5,  crouch: 1,    bob: 1.6, ph: { hn: 0, ff: 0, fn: 0.5, hf: 0.5 } }
+    };
+    const yuzu = makeSprite(92 / 307);           // standing body ≈ 92px wide when nearest
+    yuzu.x = ground.w * 0.14; yuzu.y = band().top + 12;
+    const rig = document.createElement('div'); rig.className = 'actor rig';
+    const part = (src, cls) => { const i = document.createElement('img'); i.src = src; i.alt = ''; i.className = cls; rig.appendChild(i); return i; };
+    const legs = { hf: part(RIG.hind.src, 'far'), ff: part(RIG.front.src, 'far') };
+    const rigBody = part('assets/yuzu-rig-body.webp', 'body');
+    legs.hn = part(RIG.hind.src, 'near'); legs.fn = part(RIG.front.src, 'near');
+    actors.appendChild(rig);
+    let useRig = true, gait = 'walk', cyc = 0, crouchNow = 1;
+    const STAND = { hn: 7, hf: -9, fn: -3, ff: 6 };   // resting stance: all four legs visible
+    function legPose(p, g){            // stance: paw planted sweeping back; swing: lifted and carried forward
+      if (p < g.duty){ const u = p / g.duty; return [g.amp * (1 - 2 * u), 1]; }
+      const u = (p - g.duty) / (1 - g.duty), e = 0.5 - 0.5 * Math.cos(Math.PI * u);
+      return [-g.amp + 2 * g.amp * e, 1 - 0.16 * Math.sin(Math.PI * u)];
+    }
+    function drawYuzu(){
+      const k = yuzu.k * (0.7 + 0.3 * depth(yuzu.y));
+      rig.style.display = useRig ? '' : 'none'; yuzu.el.style.display = useRig ? 'none' : '';
+      if (!useRig){ drawSprite(yuzu); return; }
+      const g = GAITS[gait], moving = clamp(yuzu.v / (8 * (0.7 + 0.3 * depth(yuzu.y))), 0, 1);   // legs settle as she stops
+      crouchNow += ((yuzu.v > 2 ? g.crouch : 1) - crouchNow) * 0.12;
+      const sink = RIG.front.h * (1 - crouchNow);                    // crouching lowers the body, legs fold
+      const bob = Math.abs(Math.sin(cyc * Math.PI * 2 * (gait === 'trot' ? 1 : 2))) * g.bob * moving;
+      rig.style.width = (RIG.bodyW * k).toFixed(1) + 'px'; rig.style.height = (RIG.ground * k).toFixed(1) + 'px';
+      rig.style.zIndex = String(Math.round(yuzu.y));
+      rig.style.transformOrigin = (RIG.ax * k).toFixed(1) + 'px 0';
+      rig.style.transform = 'translate(' + (yuzu.x - RIG.ax * k).toFixed(1) + 'px,' + (yuzu.y - RIG.ground * k + yuzu.lift).toFixed(1) + 'px) scaleX(' + yuzu.dir + ')';
+      rigBody.style.width = (RIG.bodyW * k).toFixed(1) + 'px';
+      rigBody.style.transform = 'translateY(' + ((sink - bob) * k).toFixed(1) + 'px)';
+      for (const id of ['hf', 'ff', 'hn', 'fn']){
+        const L = id[0] === 'h' ? RIG.hind : RIG.front, far = id[1] === 'f';
+        const [cAng, cLift] = legPose((cyc + g.ph[id]) % 1, g);
+        const ang = cAng * moving + STAND[id] * (1 - moving), lift = 1 + (cLift - 1) * moving;
+        const el = legs[id];
+        el.style.width = (L.w * k).toFixed(1) + 'px';
+        el.style.left = ((L.x + (far ? (id[0] === 'h' ? -15 : 14) : 0)) * k).toFixed(1) + 'px';
+        el.style.top = ((L.y + sink - bob) * k).toFixed(1) + 'px';
+        el.style.transformOrigin = (L.px * k).toFixed(1) + 'px ' + (L.py * k).toFixed(1) + 'px';
+        el.style.transform = 'rotate(' + (-ang).toFixed(2) + 'deg) scaleY(' + (crouchNow * lift).toFixed(3) + ')';
+      }
+    }
+
+    // --- the butterfly she chases: wanders, sometimes hovers low (so she sits, swats or pounces) ---
+    const fly = document.createElement('div'); fly.className = 'fly-chase';
+    fly.innerHTML = '<i class="wing"></i>'; actors.appendChild(fly);
+    const bf = { x: ground.w * 0.3, y: ground.h * 0.56, tx: 0, ty: 0, flee: 0, hover: 0 };
+    const bfZone = () => ({ x0: ground.w * 0.04, x1: ground.w * 0.44, y0: ground.h * 0.52, y1: band().top - 8 });
+    function bfTarget(far){
+      const z = bfZone();
+      for (let i = 0; i < 8; i++){
+        bf.tx = rnd(z.x0, z.x1); bf.ty = rnd(z.y0, z.y1);
+        if (!far || Math.abs(bf.tx - yuzu.x) > 90) break;
+      }
+    }
+    bfTarget(false);
+    function butterflyStep(dt){
+      if (bf.hover > 0){ bf.hover -= dt; bf.x += Math.sin(performance.now() / 300) * 0.4; bf.y += Math.cos(performance.now() / 410) * 0.3; }
+      else {
+        const dx = bf.tx - bf.x, dy = bf.ty - bf.y, d = Math.hypot(dx, dy);
+        const sp = (bf.flee > 0 ? 110 : 22) * dt; bf.flee -= dt;
+        if (d < sp + 2){ if (Math.random() < 0.65) bf.hover = rnd(3, 7); bfTarget(Math.random() < 0.25); }
+        else { bf.x += dx / d * sp; bf.y += dy / d * sp + Math.sin(performance.now() / 260) * 0.35; }
+      }
+      fly.style.zIndex = '2000';
+      fly.style.transform = 'translate(' + (bf.x - 10).toFixed(1) + 'px,' + (bf.y - 8).toFixed(1) + 'px)';
+    }
+
+    // --- Yuzu's behaviour ---
+    let yMode = 'sit', yT = 0, yDur = 6, yCool = 6, yFrame = 0, yStill = 0, ySwats = 0;
+    const go = (m, d) => { yMode = m; yT = 0; yDur = d || 0; };
+    function yuzuStep(dt){
+      const b = band(), s = 0.7 + 0.3 * depth(yuzu.y);
+      yT += dt; yCool -= dt; yuzu.lift = 0;
+      const dx = bf.x - yuzu.x, adx = Math.abs(dx);
+      const alt = (yuzu.y - 46 * s) - bf.y;                  // butterfly height above her head
+      const behind = adx > 30 * s && Math.sign(dx) !== yuzu.dir;
+      const decide = () => {
+        if (behind){ useRig = false; go('turn', 0); return; }
+        if (yCool <= 0 && adx < 26 * s && alt < 60 * s && Math.random() < 0.4){ useRig = false; ySwats = 0; go('swat', 0); return; }
+        if (yCool <= 0 && adx < 60 * s && alt < 85 * s && Math.random() < 0.6){ useRig = false; go('wiggle', rnd(0.8, 1.3)); return; }
+        if (adx > 150 * s){ useRig = true; gait = 'trot'; go('move'); return; }
+        if (adx > 75 * s){ useRig = true; gait = 'creep'; go('move'); return; }
+        if (yStill > 0.6){ useRig = false; go('sit', rnd(5, 10)); return; }
+        useRig = true; go('stand', rnd(0.8, 1.6));
+      };
+      switch (yMode){
+        case 'move': {
+          const want = gait === 'trot' ? 74 * s : 26 * s;
+          const gx = bf.x - yuzu.dir * 36 * s, gy = clamp(bf.y + ground.h * 0.12, b.top, b.bottom);
+          const d = steer(yuzu, gx, gy, want, gait === 'trot' ? 130 * s : 60 * s, dt);
+          // advance the leg cycle by distance: one cycle = paw sweep / duty, so paws never skate
+          const g = GAITS[gait], k = yuzu.k * s;
+          cyc = (cyc + (yuzu.v * dt) / (2 * RIG.front.h * k * Math.sin(g.amp * Math.PI / 180) / g.duty)) % 1;
+          yStill = 0;
+          if (yT > 0.3 && (behind || (gait === 'creep' && adx < 40 * s) || (gait === 'trot' && adx < 90 * s) || d < 3)) decide();
+          break;
+        }
+        case 'stand':
+          yuzu.v = Math.max(0, yuzu.v - 200 * dt); yStill += dt;
+          if (yT > yDur) decide();
+          break;
+        case 'turn': {                                   // side → three-quarter → facing us → (flip) → three-quarter → side
+          yuzu.v = 0;
+          const seq = [0, 1, 1, 0], i = Math.min(3, Math.floor(yT / 0.13));
+          if (i >= 2 && yuzu.dir === Math.sign(dx || 1) * -1) yuzu.dir = -yuzu.dir;
+          show(yuzu, 'yTurn', seq[i]);
+          if (yT > 0.52){ useRig = true; go('stand', 0.25); }
+          break;
+        }
+        case 'sit':
+          yuzu.v = 0;
+          if (yT === dt || Math.floor(yT / 1.6) !== Math.floor((yT - dt) / 1.6)) yFrame = Math.random() < 0.6 ? 0 : 1 + ((Math.random() * 2) | 0);   // occasional tail swish
+          show(yuzu, 'ySit', yFrame);
+          if (behind && yT > 0.6){ go('turn', 0); break; }
+          // stays put for a good while; only a butterfly that has wandered off (or dips right in front) gets her up
+          if (yT > 2.5 && (adx > 110 * s || (yT > yDur && adx > 75 * s) || (yCool <= 0 && alt < 55 * s && adx < 40 * s))){ yStill = 0; decide(); }
+          else if (yT > yDur) yDur = yT + rnd(3, 6);
+          break;
+        case 'wiggle':
+          yuzu.v = 0;
+          show(yuzu, 'yWiggle', 0);
+          yuzu.rot = Math.sin(yT * Math.PI * 2 * 2.6) * 1.4 * Math.min(1, yT / 0.25);
+          if (yT > yDur){ yuzu.rot = 0; go('leap', 0); bf.flee = 0.9; bf.hover = 0; bfTarget(true); }
+          break;
+        case 'leap': {                                   // launch → stretch → coming down
+          const u = Math.min(1, yT / 0.78);
+          show(yuzu, 'yLeap', u < 0.28 ? 0 : u < 0.62 ? 1 : 2);
+          yuzu.lift = -Math.sin(Math.PI * u) * 34 * s;
+          yuzu.x += yuzu.dir * 50 * s * dt;
+          if (u >= 1){ go('land', 0); }
+          break;
+        }
+        case 'land':
+          show(yuzu, 'yWiggle', 0);
+          if (yT > 0.45){ yCool = rnd(9, 16); useRig = false; yuzu.v = 0; go('sit', rnd(6, 10)); }
+          break;
+        case 'swat':
+          yuzu.v = 0;
+          show(yuzu, 'ySwat', Math.floor(yT / 0.26) % 2);
+          if (Math.floor(yT / 0.52) > ySwats){ ySwats++; if (ySwats === 2){ bf.flee = 0.7; bf.hover = 0; bfTarget(true); } }
+          if (ySwats >= 3){ yCool = rnd(9, 16); go('sit', rnd(6, 10)); }
+          break;
+      }
+      yuzu.x = clamp(yuzu.x, 26, ground.w * 0.52);
+    }
+
+    // --- the rowboat: KuaCham rows (frames 0-1-2), Creamy now and then lands a fish (frame 3) ---
+    // two stacked layers: the new oar position fades in over the old one, so strokes flow instead of snapping
+    const boatLayers = [...document.querySelectorAll('#boat .boat-sprite')];
+    let bT = 0, bCatch = rnd(20, 32), bCatching = 0, bFrame = 0, bTop = 1, boatHide = 0, bRest = rnd(6, 12), bResting = 0;
+    const ROW = [0, 1, 2, 1];                    // blades in → pull → lift out → back
+    function setBoatFrame(f){
+      if (f === bFrame || boatLayers.length < 2) return;
+      bFrame = f;
+      const top = boatLayers[bTop], under = boatLayers[1 - bTop];   // top = the upper layer in the DOM
+      const prev = top.__f || 0;
+      under.style.backgroundPositionX = top.style.backgroundPositionX || '0%';
+      under.style.transition = 'none'; under.style.opacity = '1';
+      top.style.transition = 'none'; top.style.opacity = '0';
+      top.style.backgroundPositionX = (f / 3 * 100) + '%';
+      void top.offsetWidth;
+      const ms = f === 3 || prev === 3 ? 220 : 380;   // the catch frame differs more: blend it quickly
+      top.style.transition = 'opacity ' + ms + 'ms ease-in-out'; top.style.opacity = '1';
+      top.__f = f;
+      clearTimeout(boatHide);
+      boatHide = setTimeout(() => { under.style.transition = 'none'; under.style.opacity = '0'; }, ms + 30);
+    }
+    function boatStep(dt){
+      if (!boatLayers.length) return;
+      bT += dt; bCatch -= dt;
+      if (bCatching > 0){ bCatching -= dt; setBoatFrame(3); return; }
+      if (bCatch <= 0){ bCatching = 3; bCatch = rnd(25, 40); setBoatFrame(3); return; }
+      // KuaCham rows a few strokes, then rests the oars for a while
+      bRest -= dt;
+      if (bResting > 0){ bResting -= dt; setBoatFrame(0); if (bResting <= 0) bT = 0; return; }
+      if (bRest <= 0){ bResting = rnd(5, 10); bRest = rnd(8, 14); return; }
+      setBoatFrame(ROW[Math.floor(bT / 0.85) % ROW.length]);
+    }
+
+    let last = performance.now(), running = false, raf = 0;
+    function frame(now){
+      const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      jessyStep(dt); butterflyStep(dt); yuzuStep(dt); boatStep(dt);
+      drawSprite(jessy); drawYuzu();
+      raf = running ? requestAnimationFrame(frame) : 0;
+    }
+    useRig = false; show(yuzu, 'ySit', 0); drawSprite(jessy); drawYuzu();
+    new IntersectionObserver((es) => {
+      running = es[0].isIntersecting;
+      if (running && !raf){ last = performance.now(); raf = requestAnimationFrame(frame); }
+    }).observe(opening);
+  }
+
+  // ---------- RSVP form: guest name from the link, 1–10 guest stepper ----------
+  const rsvpForm = document.getElementById('rsvpForm');
+  if (rsvpForm){
+    const nameIn = rsvpForm.querySelector('input[name="name"]');
+    if (nameIn && window.nikahGuestName){ nameIn.value = window.nikahGuestName; nameIn.defaultValue = window.nikahGuestName; }   // survives form.reset()
+    const st = document.getElementById('guestStepper');
+    if (st){
+      const inp = st.querySelector('input'), minus = st.querySelector('.minus'), plus = st.querySelector('.plus');
+      const set = (v) => { v = Math.max(1, Math.min(10, v)); inp.value = String(v); minus.disabled = v <= 1; plus.disabled = v >= 10; };
+      minus.addEventListener('click', () => set(+inp.value - 1));
+      plus.addEventListener('click', () => set(+inp.value + 1));
+      rsvpForm.addEventListener('reset', () => setTimeout(() => { set(1); st.classList.remove('off'); }, 0));
+      rsvpForm.querySelectorAll('input[name="attending"]').forEach((r) => r.addEventListener('change', () => st.classList.toggle('off', r.value === 'no' && r.checked)));
+      set(1);
     }
   }
+
+  // ---------- Safari / Android top bar follows what is at the top of the screen ----------
+  // (the page already draws under it: viewport-fit=cover; this tints the bar and the overscroll area to match)
+  const tcMeta = document.querySelector('meta[name="theme-color"]');
+  const TC = { cover: '#9ba253', lake: '#716837', paper: '#f4efe3', deep: '#173628' };
+  let tcNow = '';
+  const setTC = (c) => { if (c === tcNow) return; tcNow = c; if (tcMeta) tcMeta.content = c; document.documentElement.style.backgroundColor = c; };
+  const topColour = () => {
+    if (!isOpen) return TC.cover;
+    for (const sec of document.querySelectorAll('#inv > section')){
+      const r = sec.getBoundingClientRect();
+      if (r.top <= 1 && r.bottom > 1){
+        if (sec.classList.contains('opening')) return TC.lake;
+        if (sec.classList.contains('paper')) return TC.paper;
+        const prev = sec.previousElementSibling, next = sec.nextElementSibling;   // dark sections fade to cream at paper neighbours
+        if (prev && prev.classList.contains('paper') && -r.top < 110) return TC.paper;
+        if (next && next.classList.contains('paper') && r.bottom < 110) return TC.paper;
+        return TC.deep;
+      }
+    }
+    return TC.deep;
+  };
+  let tcRaf = 0;
+  const updateTC = () => { cancelAnimationFrame(tcRaf); tcRaf = requestAnimationFrame(() => setTC(topColour())); };
+  window.addEventListener('scroll', updateTC, { passive: true });
+  new MutationObserver(updateTC).observe(cover, { attributes: true, attributeFilter: ['class', 'style'] });
+  updateTC();
+
+  // ---------- whole-pixel sections ----------
+  // Sections that end on a fractional pixel leave a faint 1px line where they meet; round each height up.
+  const secs = [...document.querySelectorAll('#inv > section')];
+  let snapping = 0;
+  const snapSections = () => {
+    cancelAnimationFrame(snapping);
+    snapping = requestAnimationFrame(() => secs.forEach((sec) => {
+      sec.style.minHeight = '';
+      const h = sec.getBoundingClientRect().height;
+      if (Math.abs(h - Math.round(h)) > 0.01) sec.style.minHeight = Math.ceil(h) + 'px';
+    }));
+  };
+  const snapRO = new ResizeObserver(snapSections);
+  secs.forEach((sec) => { snapRO.observe(sec); const w = sec.querySelector('.wrap'); if (w) snapRO.observe(w); });
+  window.addEventListener('load', snapSections);
+  window.addEventListener('resize', snapSections);
+  if (document.fonts) document.fonts.ready.then(snapSections);
+  snapSections();
+
+  // ---------- section background paintings: load when the section comes near ----------
+  const ghostIO = new IntersectionObserver((es) => es.forEach((e) => {
+    if (!e.isIntersecting) return;
+    e.target.style.backgroundImage = 'url(' + e.target.dataset.bg + ')';
+    ghostIO.unobserve(e.target);
+  }), { rootMargin: '600px 0px' });
+  document.querySelectorAll('.ghost[data-bg]').forEach((g) => ghostIO.observe(g));
+
+  // ---------- venue cards: the rose sits just below the picture, beside the title ----------
+  const placeRoses = () => document.querySelectorAll('.ev-card').forEach((c) => {
+    const pic = c.querySelector('.ev-pic');
+    if (pic && pic.offsetHeight) c.style.setProperty('--picH', (pic.offsetTop + pic.offsetHeight - 30) + 'px');
+  });
+  window.addEventListener('load', placeRoses); window.addEventListener('resize', placeRoses);
+  document.querySelectorAll('.ev-pic').forEach((i) => i.addEventListener('load', placeRoses));
 
   // ---------- back to top ----------
   const toTop = document.getElementById('toTop');
@@ -72,10 +631,26 @@
   // ---------- countdown ----------
   const target = new Date('2026-11-11T11:00:00+07:00').getTime();
   const ids = ['cd-days', 'cd-hours', 'cd-mins', 'cd-secs'].map((id) => document.getElementById(id));
+  // before 11:00 WIB on the day: countdown; rest of the wedding day: "Today's the day!"; afterwards: "Finally official!"
+  // (?preview=today or ?preview=done shows those states early)
+  const dayEnd = new Date('2026-11-12T00:00:00+07:00').getTime();
+  const preview = new URLSearchParams(location.search).get('preview');
+  const cdCard = document.querySelector('.cd-card'), cdTitle = cdCard && cdCard.querySelector('.script'), cdAfter = document.getElementById('cdAfter');
+  let cdShown = 'count';
   function tick(){
-    const diff = Math.max(0, target - Date.now());
-    const parts = [Math.floor(diff / 86400000), Math.floor(diff % 86400000 / 3600000), Math.floor(diff % 3600000 / 60000), Math.floor(diff % 60000 / 1000)];
-    parts.forEach((v, i) => { ids[i].textContent = String(v).padStart(2, '0'); });
+    const now = Date.now();
+    const state = preview === 'today' || preview === 'done' ? preview : now < target ? 'count' : now < dayEnd ? 'today' : 'done';
+    if (state === 'count'){
+      const diff = Math.max(0, target - now);
+      const parts = [Math.floor(diff / 86400000), Math.floor(diff % 86400000 / 3600000), Math.floor(diff % 3600000 / 60000), Math.floor(diff % 60000 / 1000)];
+      parts.forEach((v, i) => { ids[i].textContent = String(v).padStart(2, '0'); });
+      return;
+    }
+    if (state === cdShown || !cdCard) return;
+    cdShown = state;
+    cdCard.classList.add('after');
+    cdTitle.dataset.i18n = 'countdown.' + state; cdTitle.textContent = window.i18nText(cdTitle.dataset.i18n);   // i18n keys keep it right on ID/EN switch
+    cdAfter.dataset.i18n = 'countdown.' + state + 'Sub'; cdAfter.textContent = window.i18nText(cdAfter.dataset.i18n);
   }
   tick(); setInterval(tick, 1000);
 
@@ -85,19 +660,39 @@
   cal.searchParams.set('text', 'Akad Nikah & Resepsi — Jawahar & Ferina');
   cal.searchParams.set('dates', '20261111T040000Z/20261111T080000Z');
   cal.searchParams.set('location', 'KUA Kecamatan Kemayoran, Jakarta');
-  cal.searchParams.set('details', 'Akad Nikah 11:00 WIB · KUA Kecamatan Kemayoran\nResepsi 12:00–15:00 WIB · Ayda Hotel, Jakarta\n' + location.href.split('?')[0]);
+  cal.searchParams.set('details', 'Akad Nikah 11:00 WIB · KUA Kecamatan Kemayoran\nResepsi 12:00–15:00 WIB · Ayda Hotel, Mangga Dua, Jakarta\n' + location.href.split('?')[0]);
   document.getElementById('calBtn').href = cal.toString();
 
   // ---------- copy account number ----------
-  const copyBtn = document.getElementById('copyBtn');
-  copyBtn.addEventListener('click', async () => {
-    const digits = document.getElementById('accNum').textContent.replace(/\D/g, '');
-    try { await navigator.clipboard.writeText(digits); } catch (e) { return; }
-    const label = copyBtn.querySelector('span');
-    copyBtn.classList.add('done');
-    label.textContent = window.i18nText('gift.copied');
-    setTimeout(() => { copyBtn.classList.remove('done'); label.textContent = window.i18nText('gift.copy'); }, 1800);
+  document.querySelectorAll('.copy-btn').forEach((btn) => btn.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(btn.dataset.copy); } catch (e) { return; }
+    const label = btn.querySelector('span'), key = label.dataset.i18n;
+    btn.classList.add('done'); label.textContent = window.i18nText('gift.copied');
+    setTimeout(() => { btn.classList.remove('done'); label.textContent = window.i18nText(key); }, 1800);
+  }));
+  // eWallet / UPI cards: flip to the QR; while the QR shows, "Download QR" replaces "Copy"
+  document.querySelectorAll('.gift-slide .flip').forEach((flip) => {
+    const row = flip.parentElement.querySelector('.btn-row');
+    const tgl = row.querySelector('.qr-toggle'), lab = tgl.querySelector('span'), cp = row.querySelector('.copy-btn'), dl = row.querySelector('.dl-btn');
+    tgl.addEventListener('click', () => {
+      const on = !flip.classList.contains('on');
+      flip.classList.toggle('on', on);
+      tgl.setAttribute('aria-pressed', String(on));
+      lab.dataset.i18n = on ? (tgl.dataset.back || 'gift.showNumber') : 'gift.showQR'; lab.textContent = window.i18nText(lab.dataset.i18n);
+      cp.hidden = on; dl.hidden = !on;
+    });
   });
+  // carousel dots follow the swipe
+  const giftTrack = document.getElementById('giftTrack');
+  if (giftTrack){
+    const dots = [...document.querySelectorAll('.gift-dots i')], slides = [...giftTrack.children];
+    giftTrack.addEventListener('scroll', () => {
+      const mid = giftTrack.scrollLeft + giftTrack.clientWidth / 2;
+      let best = 0, bd = Infinity;
+      slides.forEach((sl, i) => { const c = sl.offsetLeft + sl.offsetWidth / 2, d = Math.abs(c - mid); if (d < bd){ bd = d; best = i; } });
+      dots.forEach((d, i) => d.classList.toggle('on', i === best));
+    }, { passive: true });
+  }
 
   // ---------- lightbox ----------
   const lb = document.getElementById('lightbox');

@@ -29,7 +29,7 @@ function escapeHtml(str){
 function renderWishes(docs){
   const t = window.i18nText || ((k) => k);
   if (!docs.length){
-    wishesList.innerHTML = `<div class="wishes-empty">${escapeHtml(t('rsvp.empty'))}</div>`;
+    wishesList.innerHTML = '';   // no wishes yet: show nothing
     return;
   }
   let yes = 0, no = 0;
@@ -67,7 +67,8 @@ form.addEventListener('submit', async (e) => {
   const name = (fd.get('name') || '').toString().trim();
   const attending = fd.get('attending');
   const guestsRaw = (fd.get('guests') || '').toString().trim();
-  const guests = guestsRaw ? Math.max(0, Math.min(20, parseInt(guestsRaw, 10) || 0)) : (attending === 'yes' ? 1 : 0);
+  // stepper gives 1–10; someone who can't attend brings no guests
+  const guests = attending === 'yes' ? Math.max(1, Math.min(10, parseInt(guestsRaw, 10) || 1)) : 0;
   const phone = (fd.get('phone') || '').toString().trim();
   const message = (fd.get('message') || '').toString().trim();
 
