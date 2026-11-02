@@ -96,6 +96,8 @@
   let visible = true;
   new IntersectionObserver((es) => { visible = es[0].isIntersecting; setRunning(visible); }).observe(opening);
   document.addEventListener('visibilitychange', () => setRunning(visible));
-  window.addEventListener('resize', () => { if (ready) layout(); });
+  // only when the lake's size really changes: resizing a canvas reallocates it (Safari fires resize on toolbar moves)
+  let lastSize = '';
+  window.addEventListener('resize', () => { if (!ready) return; const k = opening.clientWidth + 'x' + opening.clientHeight; if (k !== lastSize){ lastSize = k; layout(); } });
   canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); ready = false; running = false; canvas.remove(); document.documentElement.classList.remove('gl-water'); });
 })();

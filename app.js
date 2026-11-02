@@ -18,6 +18,9 @@
 
   const cover = document.getElementById('cover');
   const inv = document.getElementById('inv');
+  // Safari fires resize when its toolbar shrinks/grows on scroll (height only). Layout here doesn't depend on that,
+  // and re-measuring or re-pinning during a swipe makes the first scroll stutter, so react to width changes only.
+  const onWidthResize = (fn) => { let w = window.innerWidth; window.addEventListener('resize', () => { if (window.innerWidth !== w){ w = window.innerWidth; fn(); } }); };
   // One continuous column: cover → #bridge (flowers) → #inv. Rest points: the cover at --rw (its runway; see index.html)
   // and the lake at the top of #inv. Opening/closing glides between them; the flowers are never scrolled by hand.
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
@@ -51,7 +54,7 @@
   }, { passive: true });
   window.addEventListener('load', settleScroll);
   window.addEventListener('pageshow', settleScroll);
-  window.addEventListener('resize', () => { if (!busy) window.scrollTo(0, restY()); });
+  onWidthResize(() => { if (!busy) window.scrollTo(0, restY()); });
   // the cover animates in straight away
   requestAnimationFrame(() => setTimeout(() => {
     cover.querySelectorAll('[data-r]').forEach((el) => el.classList.add('in'));
@@ -103,7 +106,7 @@
   }
   buildEnvelopeCard();
   const rebuildCard = () => { if (!busy && !isOpen) buildEnvelopeCard(); };
-  window.addEventListener('resize', rebuildCard);
+  onWidthResize(rebuildCard);
   window.addEventListener('load', rebuildCard);                       // envelope height settles once fonts/images are in
   if (document.fonts) document.fonts.ready.then(rebuildCard);
   const lerp = (a, b, t) => a + (b - a) * t, smooth = (t) => t * t * (3 - 2 * t);
@@ -241,11 +244,11 @@
     }
   }
   layoutScene();
-  window.addEventListener('resize', layoutScene);
+  onWidthResize(layoutScene);
   // the couple stands in the same depth layer as the petals and cats: sort by the feet line
   const coupleFig = document.getElementById('coupleFig');
   const sortCouple = () => { if (coupleFig) coupleFig.style.zIndex = String(Math.round(ground.feet)); };
-  sortCouple(); window.addEventListener('resize', sortCouple);
+  sortCouple(); onWidthResize(sortCouple);
 
   // ---------- birds: each with its own speed, height, arc, direction and wingbeat ----------
   const birds = document.getElementById('birds');
@@ -726,7 +729,7 @@
   const snapRO = new ResizeObserver(snapSections);
   secs.forEach((sec) => { snapRO.observe(sec); const w = sec.querySelector('.wrap'); if (w) snapRO.observe(w); });
   window.addEventListener('load', snapSections);
-  window.addEventListener('resize', snapSections);
+  onWidthResize(snapSections);
   if (document.fonts) document.fonts.ready.then(snapSections);
   snapSections();
 
@@ -743,7 +746,7 @@
     const pic = c.querySelector('.ev-pic');
     if (pic && pic.offsetHeight) c.style.setProperty('--picH', (pic.offsetTop + pic.offsetHeight - 30) + 'px');
   });
-  window.addEventListener('load', placeRoses); window.addEventListener('resize', placeRoses);
+  window.addEventListener('load', placeRoses); onWidthResize(placeRoses);
   document.querySelectorAll('.ev-pic').forEach((i) => i.addEventListener('load', placeRoses));
 
   // ---------- back to top ----------
