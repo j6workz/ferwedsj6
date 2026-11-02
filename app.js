@@ -44,6 +44,21 @@
   // Cover showing: pinned to its rest point. Open: the top of the lake is a hard floor — momentum that carries the
   // page above it is clamped on the spot (like hitting the top of a page); a finger that drags above it springs back
   // the moment it lets go. The flower band is never left on screen.
+  // Momentum that crosses the lake's top: kill it once (a brief overflow:hidden on the root ends iOS momentum
+  // scrolling), set the position once, then hand scrolling back. Snapping on every scroll event instead fights the
+  // momentum frame by frame, which jitters.
+  let stopping = false;
+  function stopMomentum(r){
+    stopping = true;
+    const root = document.documentElement;
+    root.style.overflow = 'hidden';
+    window.scrollTo(0, r);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      root.style.overflow = '';
+      if (window.scrollY < r - 1) window.scrollTo(0, r);
+      stopping = false;
+    }));
+  }
   function settleScroll(){
     if (busy) return;
     const r = restY();
@@ -52,7 +67,7 @@
   }
   window.addEventListener('scroll', () => {
     if (!isOpen){ settleScroll(); return; }
-    if (!busy && !touching){ const r = lakeTop(); if (window.scrollY < r - 1){ window.scrollTo(0, r); return; } }
+    if (!busy && !touching && !stopping){ const r = lakeTop(); if (window.scrollY < r - 1){ stopMomentum(r); return; } }
     clearTimeout(idleT); idleT = setTimeout(settleScroll, 160);
   }, { passive: true });
   window.addEventListener('load', settleScroll);
