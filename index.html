@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>The Wedding of Jawahar & Ferina</title>
 <meta name="theme-color" content="#9ba253">
+<script>/* WebKit (all iPhone/iPad browsers, Safari on Mac) redraws the animated SVG ripple on the CPU every frame: skip it there */
+if('GestureEvent' in window)document.documentElement.classList.add('wk')</script>
 <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
 <link rel="icon" type="image/png" sizes="48x48" href="assets/favicon-48.png">
@@ -182,6 +184,7 @@ section + section{margin-top:-1px}   /* sections end on fractional pixels: overl
 .opening .water{position:absolute;inset:0;background:url(assets/bg-cover.webp) center 30%/cover;filter:url(#ripple);
   -webkit-mask-image:linear-gradient(180deg,transparent var(--wt,45%),#000 calc(var(--wt,45%) + 18px),#000 calc(100% - var(--wb,45%) - 14px),transparent calc(100% - var(--wb,45%)));
   mask-image:linear-gradient(180deg,transparent var(--wt,45%),#000 calc(var(--wt,45%) + 18px),#000 calc(100% - var(--wb,45%) - 14px),transparent calc(100% - var(--wb,45%)))}
+.wk .opening .water{display:none}
 /* falling leaves/petals that settle on the lakeside grass */
 .opening .fall{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden}
 .opening .fall > img{position:absolute;left:0;top:0;will-change:transform}
