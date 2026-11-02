@@ -49,10 +49,18 @@ form.addEventListener('submit', async (e) => {
         name, phone, source: 'v4', submitted_at: serverTimestamp()
       });
     }
+    // thank-you replaces the form for a few seconds, then the form fades back in, reset, for the next response
     form.reset();
-    form.style.display = 'none';
+    form.classList.add('hidden');
     status.textContent = t(attending === 'yes' ? 'rsvp.thanks.yes' : 'rsvp.thanks.no').replace('{name}', name);
-    status.classList.add('show', 'ok');
+    status.className = 'rsvp-status show ok';
+    setTimeout(() => {
+      status.className = 'rsvp-status';
+      submitBtn.disabled = false;
+      submitBtn.textContent = t('rsvp.submit');
+      form.classList.add('fade'); form.classList.remove('hidden');
+      requestAnimationFrame(() => requestAnimationFrame(() => form.classList.remove('fade')));
+    }, 5000);
   } catch (err) {
     status.textContent = t('rsvp.error');
     status.classList.add('show', 'err');

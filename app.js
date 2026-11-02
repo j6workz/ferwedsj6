@@ -20,7 +20,11 @@
   const inv = document.getElementById('inv');
   // Safari fires resize when its toolbar shrinks/grows on scroll (height only). Layout here doesn't depend on that,
   // and re-measuring or re-pinning during a swipe makes the first scroll stutter, so react to width changes only.
-  const onWidthResize = (fn) => { let w = window.innerWidth; window.addEventListener('resize', () => { if (window.innerWidth !== w){ w = window.innerWidth; fn(); } }); };
+  // clientWidth = the layout width: unlike innerWidth it doesn't change when the guest pinch-zooms or iOS zooms
+  // into a form field, so zooming never counts as a resize (that used to jump the page back to the lake).
+  const layoutW = () => document.documentElement.clientWidth;
+  const zoomed = () => !!(window.visualViewport && window.visualViewport.scale > 1.01);   // guest pinch-zoomed in
+  const onWidthResize = (fn) => { let w = layoutW(); window.addEventListener('resize', () => { if (layoutW() !== w){ w = layoutW(); fn(); } }); };
   // One continuous column: cover → #bridge (flowers) → #inv. Rest points: the cover at --rw (its runway; see index.html)
   // and the lake at the top of #inv. Opening/closing glides between them; the flowers are never scrolled by hand.
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
@@ -49,19 +53,19 @@
   // flower band closes the invitation — the glide continues the same way the fling was going. A smaller overshoot
   // eases back to the lake once the scroll has settled.
   function settleScroll(){
-    if (busy) return;
+    if (busy || zoomed()) return;
     const r = restY();
     if (!isOpen){ if (Math.abs(window.scrollY - r) > 1) window.scrollTo(0, r); return; }
     if (!touching && window.scrollY < r - 1) glide(r, 200, null, null, (u) => 1 - Math.pow(1 - u, 3));   // quick snap: fast start, soft landing
   }
   window.addEventListener('scroll', () => {
     if (!isOpen){ settleScroll(); return; }
-    if (!busy && !touching && intoBand() > CLOSE_AT){ closeCover(); return; }
+    if (!busy && !touching && !zoomed() && intoBand() > CLOSE_AT){ closeCover(); return; }
     clearTimeout(idleT); idleT = setTimeout(settleScroll, 80);   // act only once the fling has gone quiet: no fighting
   }, { passive: true });
   window.addEventListener('load', settleScroll);
   window.addEventListener('pageshow', settleScroll);
-  onWidthResize(() => { if (!busy) window.scrollTo(0, restY()); });
+  onWidthResize(() => { if (!busy && !isOpen) window.scrollTo(0, restY()); });   // re-pin only the cover; never yank an open invitation
   // the cover animates in straight away
   requestAnimationFrame(() => setTimeout(() => {
     cover.querySelectorAll('[data-r]').forEach((el) => el.classList.add('in'));
@@ -220,7 +224,7 @@
   }, { passive: false });
   const touchDone = () => {
     touchY = null; touching = false; clearTimeout(idleT);
-    if (isOpen && !busy && intoBand() > CLOSE_AT) closeCover();                         // dragged well into the band: close
+    if (isOpen && !busy && !zoomed() && intoBand() > CLOSE_AT) closeCover();                         // dragged well into the band: close
     else idleT = setTimeout(settleScroll, 80);
   };
   window.addEventListener('touchend', touchDone, { passive: true });
