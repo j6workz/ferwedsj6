@@ -28,6 +28,7 @@
   const lakeTop = () => Math.round(inv.getBoundingClientRect().top + window.scrollY);
   const restY = () => (isOpen ? lakeTop() : runway());
   const atRest = () => window.scrollY <= restY() + 2;
+  const CLOSE_AT = 0.25;   // a fling/drag this far into the flower band (share of its height) closes the invitation
   // how far (0…1 of the flower band's height) the page has been carried above the lake while open
   const intoBand = () => { const b = document.getElementById('bridge'), c = b && b.querySelector('.in'); return c ? (lakeTop() - window.scrollY) / c.clientHeight : 0; };
   let touching = false, idleT = 0, gliding = 0;
@@ -44,7 +45,7 @@
     })(t0);
   }
   // Cover showing: pinned to its rest point. Open: Safari runs fling momentum on its own, so the page can't stop it
-  // at the lake without fighting it (jitter). Instead: a fling (or drag) that carries the page more than 10% into the
+  // at the lake without fighting it (jitter). Instead: a fling (or drag) that carries the page more than 25% into the
   // flower band closes the invitation — the glide continues the same way the fling was going. A smaller overshoot
   // eases back to the lake once the scroll has settled.
   function settleScroll(){
@@ -55,7 +56,7 @@
   }
   window.addEventListener('scroll', () => {
     if (!isOpen){ settleScroll(); return; }
-    if (!busy && !touching && intoBand() > 0.1){ closeCover(); return; }
+    if (!busy && !touching && intoBand() > CLOSE_AT){ closeCover(); return; }
     clearTimeout(idleT); idleT = setTimeout(settleScroll, 80);   // act only once the fling has gone quiet: no fighting
   }, { passive: true });
   window.addEventListener('load', settleScroll);
@@ -219,7 +220,7 @@
   }, { passive: false });
   const touchDone = () => {
     touchY = null; touching = false; clearTimeout(idleT);
-    if (isOpen && !busy && intoBand() > 0.1) closeCover();                         // dragged well into the band: close
+    if (isOpen && !busy && intoBand() > CLOSE_AT) closeCover();                         // dragged well into the band: close
     else idleT = setTimeout(settleScroll, 80);
   };
   window.addEventListener('touchend', touchDone, { passive: true });
