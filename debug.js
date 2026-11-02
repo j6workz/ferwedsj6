@@ -17,6 +17,8 @@
     const add = window.addEventListener;
     window.addEventListener = function(type, fn, opt){ if (/^touch/.test(type) && opt && opt.passive === false) return; return add.call(this, type, fn, opt); };
   }
+  // &probe: which colour does Safari paint behind its bars? html red, body blue, cover picture = real pixels
+  if (p.has('probe')) css.push('html{background-color:#ff0000!important}body{background-color:#0040ff!important}');
   if (css.length){ const s = document.createElement('style'); s.textContent = css.join('\n'); document.head.appendChild(s); }
 
   const box = document.createElement('div');
@@ -25,11 +27,16 @@
   const log = [];
   function note(s){ log.unshift(s); log.length = Math.min(log.length, 7); }
 
+  const probeEl = document.createElement('div');
+  probeEl.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none;height:env(safe-area-inset-top);width:env(safe-area-inset-bottom)';
+  document.addEventListener('DOMContentLoaded', () => document.body.appendChild(probeEl));
+  const sat = () => probeEl.isConnected ? Math.round(probeEl.getBoundingClientRect().height) : '?';
+  const sab = () => probeEl.isConnected ? Math.round(probeEl.getBoundingClientRect().width) : '?';
   let frames = 0, worst = 0, last = performance.now(), t0 = last, fps = 0, w = 0;
   function loop(now){
     const d = now - last; last = now; frames++; if (d > worst) worst = d;
     if (now - t0 >= 1000){ fps = Math.round(frames * 1000 / (now - t0)); w = Math.round(worst); frames = 0; worst = 0; t0 = now; }
-    box.textContent = 'fps ' + fps + '  worst ' + w + 'ms  off=' + (off.join(',') || '-') + '\nwater: ' + (window.__waterGL || 'not loaded') + (document.querySelector('canvas.water-gl') ? ' (canvas ' + document.querySelector('canvas.water-gl').style.height + ')' : '') + '\n' + log.join('\n');
+    box.textContent = 'fps ' + fps + '  worst ' + w + 'ms  off=' + (off.join(',') || '-') + '\nvp: sy=' + Math.round(scrollY) + ' ih=' + innerHeight + ' vv=' + (window.visualViewport ? Math.round(visualViewport.height) + '@' + Math.round(visualViewport.offsetTop) : '-') + ' sh=' + screen.height + ' sat=' + sat() + ' sab=' + sab() + (document.body && document.body.classList.contains('locked') ? ' locked' : '') + '\nwater: ' + (window.__waterGL || 'not loaded') + (document.querySelector('canvas.water-gl') ? ' (canvas ' + document.querySelector('canvas.water-gl').style.height + ')' : '') + '\n' + log.join('\n');
     requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);
