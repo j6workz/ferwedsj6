@@ -48,19 +48,20 @@
       if (u < 1) gliding = requestAnimationFrame(step); else { gliding = 0; if (done) done(); }
     })(t0);
   }
-  // Cover showing: pinned to its rest point. Open: Safari runs fling momentum on its own, so the page can't stop it
-  // at the lake without fighting it (jitter). Instead: a fling (or drag) that carries the page more than 25% into the
-  // flower band closes the invitation — the glide continues the same way the fling was going. A smaller overshoot
-  // eases back to the lake once the scroll has settled.
+  // Cover showing: pinned to its rest point. Open: Safari runs fling momentum on its own, and moving the page while
+  // it runs fights it (jitter). So nothing happens until the scroll has been quiet for 80ms; then a page carried more
+  // than 25% into the flower band closes the invitation (the glide carries on upward), and a smaller overshoot snaps
+  // back to the lake.
   function settleScroll(){
     if (busy || zoomed()) return;
     const r = restY();
     if (!isOpen){ if (Math.abs(window.scrollY - r) > 1) window.scrollTo(0, r); return; }
-    if (!touching && window.scrollY < r - 1) glide(r, 200, null, null, (u) => 1 - Math.pow(1 - u, 3));   // quick snap: fast start, soft landing
+    if (touching || window.scrollY >= r - 1) return;
+    if (intoBand() > CLOSE_AT) closeCover();                                     // the fling carried it well into the band
+    else glide(r, 200, null, null, (u) => 1 - Math.pow(1 - u, 3));             // quick snap: fast start, soft landing
   }
   window.addEventListener('scroll', () => {
     if (!isOpen){ settleScroll(); return; }
-    if (!busy && !touching && !zoomed() && intoBand() > CLOSE_AT){ closeCover(); return; }
     clearTimeout(idleT); idleT = setTimeout(settleScroll, 80);   // act only once the fling has gone quiet: no fighting
   }, { passive: true });
   window.addEventListener('load', settleScroll);
@@ -224,8 +225,7 @@
   }, { passive: false });
   const touchDone = () => {
     touchY = null; touching = false; clearTimeout(idleT);
-    if (isOpen && !busy && !zoomed() && intoBand() > CLOSE_AT) closeCover();                         // dragged well into the band: close
-    else idleT = setTimeout(settleScroll, 80);
+    idleT = setTimeout(settleScroll, 80);   // momentum may follow the finger: decide once the scroll is quiet
   };
   window.addEventListener('touchend', touchDone, { passive: true });
   window.addEventListener('touchcancel', touchDone, { passive: true });
