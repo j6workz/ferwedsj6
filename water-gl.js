@@ -25,14 +25,16 @@
     'void main(){',
     '  vec2 c = gl_FragCoord.xy / dpr;',
     '  vec2 q = vec2(c.x, size.y - c.y + top);',                       // CSS px inside .opening, y down
-    '  float k = mix(0.65, 1.35, clamp((q.y - top) / size.y, 0., 1.));',  // nearer water: bigger, slower waves
+    '  float v = q.y - top;',
+    '  float e = smoothstep(0., 34., v) * smoothstep(0., 44., size.y - v);',  // calm at the far shore and the near bank (flowers, grass)
+    '  float k = mix(0.9, 1.1, clamp(v / size.y, 0., 1.));',             // barely larger toward the viewer
     '  float y = q.y / k, x = q.x / k;',
-    '  float a = sin(y*0.55 + t*1.6 + 2.0*sin(x*0.018 + t*0.35));',
-    '  float b = sin(y*0.31 - t*1.1 + x*0.011 + 1.7*sin(x*0.007 - t*0.2));',
-    '  float d = sin(y*0.83 + t*2.3 - x*0.013);',
-    '  vec2 off = vec2(a*0.55 + b*0.45, (b + d) * 0.3) * 4.5 * k;',
+    '  float a = sin(y*0.55 + t*0.75 + 2.0*sin(x*0.018 + t*0.16));',
+    '  float b = sin(y*0.31 - t*0.5 + x*0.011 + 1.7*sin(x*0.007 - t*0.09));',
+    '  float d = sin(y*0.83 + t*1.05 - x*0.013);',
+    '  vec2 off = vec2(a*0.55 + b*0.45, (b + d) * 0.25) * 1.8 * k * e;',
     '  vec3 col = texture2D(tex, (q + off - img.xy) / img.zw).rgb;',
-    '  col += 0.035 * max(0., a*d);',                                    // faint glints on the crests
+    '  col += 0.015 * e * max(0., a*d);',                                 // very faint glints on the crests
     '  gl_FragColor = vec4(col, 1.);',
     '}'
   ].join('\n');

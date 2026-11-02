@@ -10,6 +10,13 @@
   if (off.includes('grain')) css.push('.paper,.dark,.env .paper{--grain:linear-gradient(transparent,transparent)!important}');
   if (off.includes('flip3d')) css.push('.flip,.flip-in{perspective:none!important;transform-style:flat!important;transform:none!important}.flip .face.back{display:none;transform:none!important}.flip.on .face.back{display:block}.flip.on .face.front{visibility:hidden}');
   if (off.includes('blur')) css.push('.cd-card{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}');
+  if (off.includes('snap')) css.push('.gift-track{scroll-snap-type:none!important}');
+  if (off.includes('clip')) css.push('#inv,section#gift{overflow:visible!important}');
+  if (off.includes('reveal')) css.push('.gift-carousel{transform:none!important;transition:none!important;opacity:1!important}');
+  if (off.includes('touch')){   // app.js's window-level, non-passive touch handlers (swipe to open the cover) are never added
+    const add = window.addEventListener;
+    window.addEventListener = function(type, fn, opt){ if (/^touch/.test(type) && opt && opt.passive === false) return; return add.call(this, type, fn, opt); };
+  }
   if (css.length){ const s = document.createElement('style'); s.textContent = css.join('\n'); document.head.appendChild(s); }
 
   const box = document.createElement('div');
