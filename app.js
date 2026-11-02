@@ -22,6 +22,15 @@
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   const runway = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--rw')) || 0;
   const pinRunway = () => { if (document.body.classList.contains('locked') && Math.abs(window.scrollY - runway()) > 1) window.scrollTo(0, runway()); };
+  // Open invitation: rest 1px down, never at exactly 0 (at 0 Safari paints the body colour flat behind the clock).
+  const REST = 1;
+  let touching = false, idleT = 0;
+  window.addEventListener('touchstart', () => { touching = true; }, { passive: true });
+  const touchDone = () => { touching = false; clearTimeout(idleT); idleT = setTimeout(nudge, 160); };
+  window.addEventListener('touchend', touchDone, { passive: true });
+  window.addEventListener('touchcancel', touchDone, { passive: true });
+  function nudge(){ if (isOpen && !busy && !touching && window.scrollY < REST) window.scrollTo(0, REST); }
+  window.addEventListener('scroll', () => { clearTimeout(idleT); idleT = setTimeout(nudge, 160); }, { passive: true });
   pinRunway();
   window.addEventListener('load', pinRunway);
   window.addEventListener('pageshow', pinRunway);
@@ -52,7 +61,7 @@
     hideTimer = setTimeout(() => {
       cover.style.display = 'none';
       document.body.classList.remove('locked'); // unlock only once the lake scene is fully in view; dropping the
-      window.scrollTo(0, 0);                     // runway and scrolling to 0 together leave the view unchanged
+      window.scrollTo(0, REST);                  // runway and scrolling to REST together leave the view unchanged
       busy = false;
       guardUntil = performance.now() + 450;
       atTopSince = performance.now();
@@ -62,12 +71,20 @@
     if (!isOpen || busy) return;
     isOpen = false; busy = true;
     clearTimeout(hideTimer);
+    // Don't touch the scroll while the swipe that closed it may still be bouncing: put the cover's frame where
+    // the view is now, and move onto the runway only after the animation (no fighting = no jitter).
+    cover.style.top = (window.scrollY - runway()) + 'px';
     cover.style.display = '';
     void cover.offsetWidth; // commit the "open" state so removing it animates in reverse
-    document.body.classList.add('locked');     // runway back, then sit on it: same view as scroll 0 without it
-    window.scrollTo(0, runway());
     requestAnimationFrame(() => cover.classList.remove('open'));
-    hideTimer = setTimeout(() => { busy = false; guardUntil = performance.now() + 450; }, ANIM_MS);
+    const settle = () => {
+      if (touching){ hideTimer = setTimeout(settle, 120); return; }
+      cover.style.top = '';
+      document.body.classList.add('locked');   // runway back, then sit on it: the view doesn't move
+      window.scrollTo(0, runway());
+      busy = false; guardUntil = performance.now() + 450;
+    };
+    hideTimer = setTimeout(settle, ANIM_MS);
   }
   document.getElementById('openBtn').addEventListener('click', openCover);
 
@@ -575,7 +592,7 @@
   const tcMeta = document.querySelector('meta[name="theme-color"]');
   const TC = { cover: '#9ba253', lake: '#716837', paper: '#f4efe3', deep: '#173628' };
   let tcNow = '';
-  const setTC = (c) => { if (c === tcNow) return; tcNow = c; if (tcMeta) tcMeta.content = c; document.documentElement.style.backgroundColor = c; };
+  const setTC = (c) => { if (c === tcNow) return; tcNow = c; if (tcMeta) tcMeta.content = c; document.documentElement.style.backgroundColor = c; document.body.style.backgroundColor = c; };   // Safari 26 samples body at scroll 0
   const topColour = () => {
     if (!isOpen) return TC.cover;
     for (const sec of document.querySelectorAll('#inv > section')){
@@ -635,7 +652,7 @@
   // ---------- back to top ----------
   const toTop = document.getElementById('toTop');
   window.addEventListener('scroll', () => { toTop.classList.toggle('show', window.scrollY > 700); }, { passive: true });
-  toTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+  toTop.addEventListener('click', () => window.scrollTo({ top: REST, behavior: 'smooth' }));
 
   // ---------- countdown ----------
   const target = new Date('2026-11-11T11:00:00+07:00').getTime();
