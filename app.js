@@ -31,9 +31,9 @@
   // how far (0…1 of the flower band's height) the page has been carried above the lake while open
   const intoBand = () => { const b = document.getElementById('bridge'), c = b && b.querySelector('.in'); return c ? (lakeTop() - window.scrollY) / c.clientHeight : 0; };
   let touching = false, idleT = 0, gliding = 0;
-  function glide(to, ms, done, onFrame){
+  function glide(to, ms, done, onFrame, easeFn){
     cancelAnimationFrame(gliding);
-    const from = window.scrollY, t0 = performance.now(), ease = (u) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
+    const from = window.scrollY, t0 = performance.now(), ease = easeFn || ((u) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2));
     if (ms <= 0 || Math.abs(to - from) < 1){ window.scrollTo(0, to); if (onFrame) onFrame(1); if (done) done(); return; }
     (function step(now){
       const u = Math.min(1, (now - t0) / ms, window.__glideFreeze || 1);   // __glideFreeze: diagnostics only (?debug&freeze=)
@@ -51,12 +51,12 @@
     if (busy) return;
     const r = restY();
     if (!isOpen){ if (Math.abs(window.scrollY - r) > 1) window.scrollTo(0, r); return; }
-    if (!touching && window.scrollY < r - 1) window.scrollTo({ top: r, behavior: 'smooth' });
+    if (!touching && window.scrollY < r - 1) glide(r, 200, null, null, (u) => 1 - Math.pow(1 - u, 3));   // quick snap: fast start, soft landing
   }
   window.addEventListener('scroll', () => {
     if (!isOpen){ settleScroll(); return; }
     if (!busy && !touching && intoBand() > 0.1){ closeCover(); return; }
-    clearTimeout(idleT); idleT = setTimeout(settleScroll, 160);
+    clearTimeout(idleT); idleT = setTimeout(settleScroll, 80);   // act only once the fling has gone quiet: no fighting
   }, { passive: true });
   window.addEventListener('load', settleScroll);
   window.addEventListener('pageshow', settleScroll);
@@ -220,7 +220,7 @@
   const touchDone = () => {
     touchY = null; touching = false; clearTimeout(idleT);
     if (isOpen && !busy && intoBand() > 0.1) closeCover();                         // dragged well into the band: close
-    else idleT = setTimeout(settleScroll, 160);
+    else idleT = setTimeout(settleScroll, 80);
   };
   window.addEventListener('touchend', touchDone, { passive: true });
   window.addEventListener('touchcancel', touchDone, { passive: true });
