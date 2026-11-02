@@ -153,7 +153,7 @@ section + section{margin-top:-1px}   /* sections end on fractional pixels: overl
 #cover .bg{position:absolute;inset:0;background:url(assets/bg-opening-3.webp) center/cover,var(--deep);animation:kenburns 40s ease-in-out infinite alternate}
 #cover .frame{position:absolute;left:0;right:0;top:var(--rw);height:100dvh}
 /* garden → lake: a deep band of bouquets the page glides through when the envelope opens (never scrolled by hand) */
-#bridge{position:relative;z-index:901;pointer-events:none;height:72dvh;margin-top:-1px;background:linear-gradient(180deg,#889958 0%,#7f8f50 40%,#9a8d5c 75%,#b89c73 100%)}   /* flowers spill over both edges (body clips sideways) */
+#bridge{position:relative;z-index:901;pointer-events:none;overflow-x:clip;overflow-y:visible;height:72dvh;margin-top:-1px;background:linear-gradient(180deg,#889958 0%,#7f8f50 40%,#9a8d5c 75%,#b89c73 100%)}   /* flowers spill over the top/bottom seams; clipped sideways so the page never gets wider than the screen */
 #bridge .in{position:relative;max-width:var(--col);height:100%;margin:0 auto}
 #bridge img{position:absolute;display:block;height:auto;pointer-events:none;filter:drop-shadow(0 4px 6px rgba(15,39,28,.22))}
 #bridge .fx{transform:scaleX(-1)}
