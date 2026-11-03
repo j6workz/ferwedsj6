@@ -237,12 +237,19 @@ Look at every screenshot. Checklist:
 
 ## 11. Deploy
 ```bash
+python3 tools/locale-pages.py      # ALWAYS after editing index.html: regenerates ta.html / en.html / id.html
 git add -A && git commit -m "<what changed>" && git push origin main
 ```
 Wait about 10 min and hard-refresh https://fer.weds.j6.studio/. If old JS shows up, you forgot to bump `?v=`.
 Send the owner phone screenshots of what changed, not just a summary.
 
 ## 12. Invite links: `?to=`, `?s=`, `?lang=`
+
+**Per-language link previews.** WhatsApp/Facebook read `<title>`/`og:*` from the HTML without running JS, so
+`?lang=` can't change the preview. `tools/locale-pages.py` writes `ta.html`, `en.html`, `id.html` (copies of
+`index.html` with their own title/description/og tags and `data-locale`); GitHub Pages serves them at `/ta`,
+`/en`, `/id`. Send guests `https://fer.weds.j6.studio/ta?to=...` (no `&lang=` needed). Never edit those three
+files by hand. Old `/?lang=ta` links still work, but show the default (Indonesian/English) preview.
 
 | Param | What it does | Limit |
 |---|---|---|
@@ -252,7 +259,7 @@ Send the owner phone screenshots of what changed, not just a summary.
 
 - Without `s`, the default for the language is used: "Kepada Yth. Bapak/Ibu/Saudara/i", "Dear", "அன்புடையீர்".
 - A custom `s` doesn't change when the guest switches language, so match `s` to `lang`.
-- Locale order: `?lang=` → guest's earlier choice (localStorage) → browser language list → English.
+- Locale order: `?lang=` → page language (`/ta`, `/en`, `/id`) → guest's earlier choice (localStorage) → browser language list → English.
 - Over-long values are cut at the last space, else after the last whole letter (`Intl.Segmenter`),
   so Tamil never shows half a letter. Tamil letters like "கு" count as 2+ chars.
 - Encode before sending on WhatsApp (plain Tamil/spaces can break the clickable link). Browser console:

@@ -468,6 +468,12 @@ form#rsvpForm{position:relative;z-index:2;text-align:left;display:flex;flex-dire
 
 /* ---------- closing ---------- */
 .closing .wrap{padding-top:40px;padding-bottom:118px}
+/* page ends here: the corner art is cropped flat at its bottom, so sink it past the edge and dissolve the last stretch into the paper */
+.closing .corner-b{bottom:34px;-webkit-mask-image:linear-gradient(#000 calc(100% - 110px),transparent calc(100% - 30px));mask-image:linear-gradient(#000 calc(100% - 110px),transparent calc(100% - 30px))}
+/* a full-width flower bed along the very bottom, behind the leaping cat: its own leaf tips make the edge, not a cut */
+.closing .bed{position:absolute;left:-30%;width:160%;bottom:4px;z-index:5;pointer-events:none;filter:drop-shadow(0 4px 6px rgba(15,39,28,.18))}
+.closing .bed img{display:block;width:100%;height:auto}
+.closing .wrap{padding-bottom:210px}
 .closing .arch{position:relative;width:300px;max-width:100%;height:290px;margin:0 auto;border-radius:150px 150px 24px 24px;overflow:hidden;background:url(assets/bg-closing.webp) center/cover;box-shadow:0 0 0 5px rgba(255,255,255,.75),0 0 0 6px rgba(47,90,67,.25),0 18px 30px rgba(23,54,40,.18)}
 .closing .arch img{position:absolute;left:0;right:0;bottom:-4px;margin:0 auto;width:90%}
 .closing .kits .amp2{display:block;font-family:'Gilda Display','Noto Serif Tamil',serif;font-size:22px;letter-spacing:0;color:var(--gold-b);margin:2px 0 4px}
@@ -480,6 +486,17 @@ form#rsvpForm{position:relative;z-index:2;text-align:left;display:flex;flex-dire
 .lang-toggle button{border:none;background:none;padding:6px 12px;border-radius:999px;font-family:'Montserrat',sans-serif;font-size:11px;letter-spacing:.1em;color:var(--green);cursor:pointer}
 .lang-toggle button.active{background:var(--deep);color:#f4efe3}
 .lang-toggle button[lang="ta"]{font-family:'Noto Serif Tamil',serif;font-size:13px;letter-spacing:0;padding:4px 12px}
+/* sound toggle: mirrors the language pill on the left; hidden until the song file loads */
+.sound-toggle{position:fixed;top:calc(12px + env(safe-area-inset-top));left:calc(12px + env(safe-area-inset-left));z-index:980;width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(244,239,227,.9);border:1px solid rgba(183,151,90,.55);backdrop-filter:blur(6px);color:var(--green);cursor:pointer}
+.sound-toggle[hidden]{display:none}
+.sound-toggle svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sound-toggle .off,.sound-toggle.on .x{display:none}
+.sound-toggle.on .off{display:inline}
+.sound-toggle.on{background:var(--deep);color:#f4efe3;border-color:var(--deep)}
+.sound-toggle.on .off path{animation:soundWave 1.6s ease-in-out infinite}
+.sound-toggle.on .off path+path{animation-delay:.3s}
+@keyframes soundWave{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.sound-toggle.on .off path{animation:none}}
 /* Tamil locale: translated text uses the Tamil serif (Latin names/numbers inside still fall through to it fine);
    wide caps tracking and uppercase don't suit Tamil script */
 html[lang="ta"] [data-i18n],html[lang="ta"] [data-i18n-placeholder],html[lang="ta"] [data-i18n-placeholder]::placeholder{font-family:'Noto Serif Tamil','Crimson Pro','Noto Serif Tamil',serif;letter-spacing:normal;text-transform:none;font-style:normal}
@@ -500,6 +517,8 @@ html[lang="ta"] .closing .names[data-i18n]{font-size:30px}
 </head>
 <body class="locked">
 
+<audio id="song" loop preload="none" playsinline></audio>
+<button class="sound-toggle" id="soundBtn" type="button" aria-label="Music" aria-pressed="false" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><g class="off"><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18 6.5a7.5 7.5 0 0 1 0 11"/></g><g class="x"><path d="M16 9.5l5 5M21 9.5l-5 5"/></g></svg></button>
 <div class="lang-toggle"><button data-lang="id">ID</button><button data-lang="en" class="active">EN</button><button data-lang="ta" lang="ta" aria-label="தமிழ்">த</button></div>
 
 <!-- ===== desktop side panel ===== -->
@@ -820,7 +839,7 @@ html[lang="ta"] .closing .names[data-i18n]{font-size:30px}
 <section class="closing paper">
   <div class="ghost" data-bg="assets/bg-ghost-arch.webp"></div>
   <div class="wrap">
-    <div class="arch" data-r="zoom-out"><img class="bob" src="assets/couple-with-four-cats.webp" alt="Jawahar, Ferina, KuaCham, Jessy, Creamy &amp; Yuzu" loading="lazy"></div>
+    <div class="arch" data-r="zoom-out"><img class="bob" src="assets/couple-with-four-cats.webp?v=2" alt="Jawahar, Ferina, KuaCham, Jessy, Creamy &amp; Yuzu" loading="lazy"></div>
     <p class="body" style="margin-top:28px" data-r="zoom-down" data-i18n="closing.body"></p>
     <div class="so" data-r="zoom-down" data-delay="150" data-i18n="closing.signoff">Kami yang berbahagia,</div>
     <div class="names gilda" data-r="zoom-down" data-delay="300" data-i18n="names.couple">Jawahar &amp; Ferina</div>
@@ -828,6 +847,7 @@ html[lang="ta"] .closing .names[data-i18n]{font-size:30px}
   </div>
   <div class="corner-b l" data-r="zoom-bl"><div class="pulse-l"><img src="assets/floral-corner-bl.webp" alt="" loading="lazy"></div></div>
   <div class="corner-b r" data-r="zoom-br"><div class="pulse-r"><img src="assets/floral-corner-bl.webp" alt="" loading="lazy"></div></div>
+  <div class="bed" data-r="zoom-up" data-delay="200"><img src="assets/floral-band.webp" alt="" loading="lazy"></div>
   <div class="kit walk" data-r="zoom-up" data-delay="400"><div class="bob"><img src="assets/cat-yuzu-play.webp" alt="Yuzu" loading="lazy"></div></div>
 </section>
 
@@ -837,8 +857,8 @@ html[lang="ta"] .closing .names[data-i18n]{font-size:30px}
 <div id="lightbox"><img alt=""></div>
 
 <script>if(/[?&]debug/.test(location.search))document.write('<script src="debug.js?v=6"><\/script>')</script>
-<script src="i18n.js?v=20261103w"></script>
-<script src="app.js?v=20261104w"></script>
+<script src="i18n.js?v=20261105c"></script>
+<script src="app.js?v=20261105d"></script>
 <script src="water-gl.js?v=6"></script>
 <script type="module" src="rsvp.js?v=20261104v"></script>
 </body>

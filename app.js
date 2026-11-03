@@ -706,7 +706,15 @@
   // lake: average of what's rendered under the status bar at rest (sunset sky + garlands), so Safari's top-edge tint blends in
   const TC = { cover: '#9ba253', bridge: '#889958', lake: '#b89c73', paper: '#f4efe3', deep: '#173628' };
   let tcNow = '';
-  const setTC = (c) => { if (c === tcNow) return; tcNow = c; if (tcMeta) tcMeta.content = c; document.documentElement.style.backgroundColor = c; document.body.style.backgroundColor = c; };   // Safari 26 samples body at scroll 0
+  // Near the end of the page the canvas turns cream: iOS shows it when you pull past the bottom, and dark green there
+  // drew a hard line under the closing flowers. The bar tint (meta) still follows the top of the screen.
+  const atEnd = () => window.scrollY + window.innerHeight > document.documentElement.scrollHeight - window.innerHeight * 0.6;
+  const setTC = (c) => {
+    const bg = atEnd() ? TC.paper : c, key = c + '|' + bg;
+    if (key === tcNow) return; tcNow = key;
+    if (tcMeta) tcMeta.content = c;
+    document.documentElement.style.backgroundColor = bg; document.body.style.backgroundColor = bg;   // Safari 26 samples body at scroll 0
+  };
   const topColour = () => {
     if (cover.getBoundingClientRect().bottom > 1) return TC.cover;           // garden at the top of the screen
     if (bridge && bridge.getBoundingClientRect().bottom > 1) return TC.bridge;
@@ -844,4 +852,74 @@
   });
   lb.addEventListener('click', () => lb.classList.remove('show'));
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') lb.classList.remove('show'); });
+})();
+
+/* ---------- background song ----------
+   Starts with "open invitation" (a tap, so browsers allow it); #soundBtn toggles it.
+   One track per language, all cut to the SAME timeline: switching language swaps the track and carries on from the
+   same second. Add a Tamil cut by pointing SONGS.ta at it. */
+(function(){
+  const audio = document.getElementById('song'), btn = document.getElementById('soundBtn');
+  if (!audio || !btn) return;
+  const SONGS = { id: 'assets/song.m4a?v=1', en: 'assets/song.m4a?v=1', ta: 'assets/song-ta.m4a?v=1' };
+  const VOL = .8, KEY = 'fw-sound';
+  let wanted = true, fadeT = 0, cur = '';
+  try { wanted = localStorage.getItem(KEY) !== 'off'; } catch(e) {}
+  btn.hidden = false;
+  const srcFor = (lang) => SONGS[lang] || SONGS.en;
+  const setSrc = (url) => { if (url !== cur) { cur = url; audio.src = url; } };
+  setSrc(srcFor(document.documentElement.lang));
+  // `on` is the button's own truth. Never read it back from the <audio>: on iPhone `volume` is fixed at 1 and play()
+  // resolves late while the file streams in, so guessing from the element made taps do nothing.
+  let on = false;
+  const show = () => { btn.classList.toggle('on', on); btn.setAttribute('aria-pressed', on ? 'true' : 'false'); };
+  function fadeIn(){                                             // desktop nicety; iPhone ignores volume and just plays
+    clearInterval(fadeT);
+    try { audio.volume = 0; } catch(e) {}
+    if (audio.volume !== 0) { try { audio.volume = VOL; } catch(e) {} return; }
+    fadeT = setInterval(() => {
+      const v = Math.min(VOL, audio.volume + .05);
+      audio.volume = v;
+      if (v >= VOL) clearInterval(fadeT);
+    }, 40);
+  }
+  function play(){
+    on = true; show();
+    audio.muted = false;
+    fadeIn();
+    const p = audio.play();
+    if (p && p.then) p.then(() => { if (!on) audio.pause(); })   // turned off while it was still loading
+                      .catch(() => { on = false; show(); });
+  }
+  function stop(){
+    on = false; show();
+    clearInterval(fadeT);
+    audio.muted = true;                                          // silent at once, on every device
+    audio.pause();
+  }
+  btn.addEventListener('click', () => {
+    if (on) { wanted = false; stop(); } else { wanted = true; play(); }
+    try { localStorage.setItem(KEY, wanted ? 'on' : 'off'); } catch(e) {}
+  });
+  const open = document.getElementById('openBtn');
+  if (open) open.addEventListener('click', () => { if (wanted && !on) play(); });
+
+  // language switch: same second, other track
+  document.addEventListener('nikah:locale', (e) => {
+    const url = srcFor(e.detail);
+    if (url === cur) return;
+    const t = audio.currentTime || 0, playing = on;
+    setSrc(url);
+    const resume = () => {
+      try { audio.currentTime = Math.min(t, (audio.duration || t + 1) - .25); } catch(err) {}
+      if (playing && on) audio.play().catch(() => { on = false; show(); });
+    };
+    if (audio.readyState >= 1) resume(); else audio.addEventListener('loadedmetadata', resume, { once: true });
+    if (playing) audio.load();
+  });
+
+  document.addEventListener('visibilitychange', () => {                // quiet in a background tab, resume on return
+    if (document.hidden) { if (on) audio.pause(); }
+    else if (on) audio.play().catch(() => { on = false; show(); });
+  });
 })();

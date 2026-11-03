@@ -326,6 +326,8 @@
   function pickLocale(){
     const q = (new URLSearchParams(location.search).get('lang') || '').toLowerCase();
     if (STRINGS[q]) return q;
+    const page = document.documentElement.getAttribute('data-locale');   // /ta, /en, /id pages (tools/locale-pages.py)
+    if (STRINGS[page]) return page;
     let saved = null;
     try { saved = localStorage.getItem('nikah_locale'); } catch (e) {}
     if (STRINGS[saved]) return saved;
