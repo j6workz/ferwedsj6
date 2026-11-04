@@ -1,2 +1,9 @@
 assets/new/
 .DS_Store
+# full-size original photos: never publish (only the cropped webp in assets/ goes live)
+/*.HEIC
+/*.heic
+/*.JPEG
+/*.jpeg
+/*.JPG
+/*.jpg

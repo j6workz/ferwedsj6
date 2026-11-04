@@ -301,6 +301,18 @@ body > .fcard{left:0;top:0;transform-origin:0 0;z-index:905}
 .oval img{position:absolute;left:0;right:0;margin:0 auto;bottom:0;width:96%}
 .oval .bg{position:absolute;inset:0;background-size:cover;background-position:center;opacity:.55}
 .person .oval img{width:auto;height:92%}
+/* real photos fill the whole oval (head-and-shoulders crops, 400x544 = 2x the oval) */
+/* one shared photo of the couple in a tall oval, the two name blocks follow; KuaCham and Creamy sit together
+   at its lower left, Creamy a step in front */
+.couple-photo{position:relative;width:min(300px,78vw);margin:0 auto 30px}
+.couple-photo .frame{aspect-ratio:3/4;border-radius:50%;overflow:hidden;background:#eef1e4;box-shadow:0 0 0 5px rgba(255,255,255,.8),0 0 0 6px rgba(184,146,74,.55),0 18px 30px rgba(23,54,40,.2)}
+.couple-photo .frame img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 30%}
+.couple-photo .kit{width:76px}
+.couple-photo .kit.r{left:-40px;bottom:6px;z-index:5}
+.couple-photo .kit.l{left:14px;bottom:-24px;width:72px;z-index:6}
+/* with the shared photo, the left spray hugs the arch's side (fixed px from the top: the photo always starts at the
+   same offset, whatever the language) and the long vine is dropped so it never crosses the names */
+#couple .bride-up{top:14px;left:-46px}#couple .bride-down{display:none}#couple .bride-vine{display:none}
 .person h3{font-size:30px;color:var(--green);margin-top:22px;line-height:1.15}
 .person .nick{font-family:'Pinyon Script',cursive;font-size:26px;color:var(--gold-b)}
 .person .role{font-family:'Montserrat',sans-serif;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-soft);margin-top:10px}
@@ -647,11 +659,14 @@ html[lang="ta"] .closing .names[data-i18n]{font-size:30px}
   <div class="bride-vine" data-r="zoom-tl"><div class="sway"><img src="assets/floral-vine-side.webp" alt="" loading="lazy"></div></div>
   <div class="bride-up" aria-hidden="true"><img src="assets/floral-corner-tl.webp" alt="" loading="lazy"></div>
   <div class="bride-down" aria-hidden="true"><img src="assets/floral-corner-tl.webp" alt="" loading="lazy"></div>
-  <div class="fly-b" style="right:20%;top:21%" aria-hidden="true"><i class="wing"></i></div>
+  <div class="fly-b" style="right:24%;top:40px" aria-hidden="true"><i class="wing"></i></div>
   <div class="wrap">
-    <div class="person">
-      <div class="oval" data-r="zoom-down"><div class="bg" style="background-image:url(assets/bg-opening-1.webp)"></div><img src="assets/groom-wedding.webp" alt="Jawahar" loading="lazy"></div>
+    <div class="couple-photo" data-r="zoom-down">
+      <div class="frame"><img src="assets/couple-photo.webp" alt="Jawahar &amp; Ferina" loading="lazy" width="640" height="800"></div>
+      <div class="kit l" data-r="zoom-bl" data-delay="500"><div class="sway"><img src="assets/cat-creamy-sit.webp" alt="Creamy" loading="lazy"></div></div>
       <div class="kit r" data-r="zoom-br" data-delay="500"><div class="sway"><img src="assets/cat-kuacham-sit.webp" alt="KuaCham" loading="lazy"></div></div>
+    </div>
+    <div class="person">
       <h3 data-r="zoom-down" data-delay="150" data-i18n="names.groom">Jawahar Mariselvam</h3>
       <div class="nick" data-r="zoom-down" data-delay="250">J6</div>
       <div class="role" data-r="zoom-down" data-delay="300" data-i18n="profile.groom.role">Mempelai Pria</div>
@@ -659,8 +674,6 @@ html[lang="ta"] .closing .names[data-i18n]{font-size:30px}
     </div>
     <div class="amp" data-r="zoom-in">&amp;</div>
     <div class="person">
-      <div class="oval" data-r="zoom-down"><div class="bg" style="background-image:url(assets/bg-opening-3.webp)"></div><img src="assets/bride-wedding.webp" alt="Ferina" loading="lazy"></div>
-      <div class="kit l" data-r="zoom-bl" data-delay="500"><div class="sway"><img src="assets/cat-creamy-sit.webp" alt="Creamy" loading="lazy"></div></div>
       <h3 data-r="zoom-down" data-delay="150" data-i18n="names.bride">Ferina Khansa Nabilah</h3>
       <div class="nick" data-r="zoom-down" data-delay="250">Fer</div>
       <div class="role" data-r="zoom-down" data-delay="300" data-i18n="profile.bride.role">Mempelai Wanita</div>
