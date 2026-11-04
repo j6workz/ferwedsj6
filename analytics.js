@@ -44,7 +44,9 @@
     } catch (e) {}
   }
 
-  log('visit', document.referrer ? new URL(document.referrer).hostname : '');
+  // who sent the link (send.html adds &from=j6|amma|thilagar), else where the visit came from
+  const from = (q.get('from') || '').replace(/[^a-z0-9]/gi, '').slice(0, 12);
+  log('visit', from ? 'via ' + from : (document.referrer ? new URL(document.referrer).hostname : ''));
 
   // taps
   const label = (el) => (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40);

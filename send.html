@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<!-- Invite sender for the family (Jawahar, Amma, Thilagar): builds a personal WhatsApp message + invitation link.
+     Not linked from the invitation; noindex. Holds no contacts: the sender picks the person in WhatsApp (or types a
+     number). Nothing is sent automatically: WhatsApp opens with the message and the sender presses Send. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Send Invitations · Jawahar &amp; Ferina</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Crimson+Pro:wght@400;500;600&family=Noto+Serif+Tamil:wght@400;500&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f1e6;--card:#fffdf8;--deep:#173628;--green:#2f5a43;--ink:#2a382f;--soft:#56645a;--line:#e3d9c4;--gold-a:#e3cd94;--gold-b:#b7975a;--wa:#1da851}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'Crimson Pro','Noto Serif Tamil',serif;font-size:17px;line-height:1.45}
+.wrap{max-width:560px;margin:0 auto;padding:22px 16px 60px}
+header{text-align:center;margin-bottom:18px}
+h1{font-family:'Gilda Display','Noto Serif Tamil',serif;font-weight:400;font-size:30px;color:var(--deep);margin:0}
+.k{font-family:'Montserrat',sans-serif;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--gold-b)}
+.ta{font-family:'Noto Serif Tamil',serif}
+.step{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0}
+.q{font-family:'Montserrat',sans-serif;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--green);margin-bottom:9px}
+.q small{font-family:'Noto Serif Tamil',serif;text-transform:none;letter-spacing:0;font-weight:400;color:var(--soft);font-size:13px;margin-left:6px}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{flex:1 1 auto;min-width:96px;border:1.5px solid var(--line);background:#fff;color:var(--ink);border-radius:12px;padding:10px 12px;font:inherit;font-size:16px;cursor:pointer;text-align:center;line-height:1.25}
+.opt small{display:block;font-size:12.5px;color:var(--soft);font-family:'Noto Serif Tamil',serif}
+.opt.on{border-color:var(--deep);background:var(--deep);color:#f4efe3}
+.opt.on small{color:var(--gold-a)}
+label.f{display:block;font-size:14px;color:var(--soft);margin:10px 0 5px}
+input[type=text],input[type=tel],textarea{width:100%;padding:12px 13px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font:inherit;font-size:16px}
+textarea{min-height:270px;resize:vertical;font-size:15.5px;line-height:1.5}
+.hint{font-size:13.5px;color:var(--soft);margin-top:6px}
+.send{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;margin-top:12px;padding:15px;border:none;border-radius:12px;background:var(--wa);color:#fff;font-family:'Montserrat',sans-serif;font-weight:600;font-size:16px;text-decoration:none;cursor:pointer}
+.send svg{width:22px;height:22px;fill:#fff}
+.row2{display:flex;gap:8px;margin-top:8px}
+.row2 > *{flex:1;text-align:center;padding:11px;border:1.5px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);font:inherit;font-size:15px;text-decoration:none;cursor:pointer}
+.log{font-size:14.5px;color:var(--soft)}
+.log li{margin:2px 0}
+.contacts .bar{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.contacts input[type=search],.contacts input[type=password]{flex:1;min-width:150px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;font:inherit;font-size:16px;color:var(--ink)}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 11px;font:inherit;font-size:14px;cursor:pointer;color:var(--ink)}
+.chip.on{background:var(--deep);color:#f4efe3;border-color:var(--deep)}
+.ppl{list-style:none;margin:0;padding:0}
+.ppl li{display:flex;align-items:center;gap:8px;padding:10px 0;border-top:1px solid var(--line)}
+.ppl li.done{opacity:.5}
+.ppl .who{flex:1;min-width:0}
+.ppl .nm{font-weight:600}
+.ppl .meta{font-size:13px;color:var(--soft)}
+.ppl .warn{font-size:12.5px;color:#a8443a}
+.ppl .wa{background:var(--wa);color:#fff;border:none;border-radius:10px;padding:9px 12px;font-family:'Montserrat',sans-serif;font-weight:600;font-size:13px;text-decoration:none;white-space:nowrap}
+.ppl .ed{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 10px;font:inherit;font-size:14px;cursor:pointer}
+.ppl input[type=checkbox]{width:20px;height:20px}
+.log button{border:none;background:none;color:var(--gold-b);font:inherit;cursor:pointer;padding:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="k">Jawahar &amp; Ferina · 11 · 11 · 2026</div>
+    <h1>Send Invitations</h1>
+    <div class="ta" style="font-size:14px;color:var(--soft)">அழைப்பிதழ் அனுப்ப</div>
+  </header>
+
+  <div class="step"><div class="q">1 · Who is sending? <small>யார் அனுப்புகிறீர்கள்?</small></div>
+    <div class="opts" data-key="from">
+      <button class="opt" data-v="j6">Jawahar<small>ஜவஹர்</small></button>
+      <button class="opt" data-v="amma">Amma<small>அம்மா</small></button>
+      <button class="opt" data-v="thilagar">Thilagar<small>திலகர்</small></button>
+    </div></div>
+
+  <div class="step"><div class="q">2 · Message language <small>மொழி</small></div>
+    <div class="opts" data-key="lang">
+      <button class="opt" data-v="ta">தமிழ்<small>Tamil</small></button>
+      <button class="opt" data-v="en">English<small>ஆங்கிலம்</small></button>
+    </div></div>
+
+  <div class="step"><div class="q">3 · Who is it for? <small>யாருக்கு?</small></div>
+    <div class="opts" data-key="tone">
+      <button class="opt" data-v="respect">🙏 Elders / respected<small>பெரியோர்</small></button>
+      <button class="opt" data-v="family">🤍 Family &amp; relatives<small>உறவினர்</small></button>
+      <button class="opt" data-v="friends">😊 Friends<small>நண்பர்கள்</small></button>
+      <button class="opt" data-v="work">💼 Colleagues<small>அலுவலக நண்பர்கள்</small></button>
+    </div></div>
+
+  <div class="step"><div class="q">4 · Where are they? <small>அவர்கள் எங்கே?</small></div>
+    <div class="opts" data-key="where">
+      <button class="opt" data-v="india">In India<small>இந்தியாவில் (வர இயலாது)</small></button>
+      <button class="opt" data-v="jakarta">Can come to Jakarta<small>ஜகார்த்தா வர முடியும்</small></button>
+    </div></div>
+
+  <div class="step"><div class="q">5 · Guest <small>விருந்தினர்</small></div>
+    <label class="f" for="name">Name, as it should appear on their invitation · <span class="ta">பெயர்</span></label>
+    <input type="text" id="name" placeholder="e.g. Murugan Uncle" autocomplete="off">
+    <label class="f" for="phone">WhatsApp number (optional) · <span class="ta">எண் (விருப்பம்)</span></label>
+    <input type="tel" id="phone" placeholder="e.g. 98765 43210" autocomplete="off">
+    <div class="hint">No number? WhatsApp will ask you to pick the contact. · <span class="ta">எண் இல்லையென்றால் WhatsApp-இல் நபரைத் தேர்ந்தெடுக்கவும்.</span></div>
+  </div>
+
+  <div class="step"><div class="q">6 · Message <small>செய்தி</small> <small>(you can edit · மாற்றலாம்)</small></div>
+    <textarea id="msg"></textarea>
+    <a class="send" id="send" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 01-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 00-.7.3 3 3 0 00-.9 2.2 5.2 5.2 0 001.1 2.7 11.8 11.8 0 004.5 4c1.7.7 2.3.8 3.2.7a2.7 2.7 0 001.8-1.3 2.2 2.2 0 00.1-1.3c0-.1-.2-.2-.4-.3z"/></svg><span>Send on WhatsApp · அனுப்பு</span></a>
+    <div class="row2"><button id="copy">Copy · நகலெடு</button><a id="preview" target="_blank" rel="noopener">See invitation · பார்</a></div>
+  </div>
+
+  <div class="step contacts" id="contacts"><div class="q">Contacts list <small>தொடர்புகள்</small></div>
+    <div id="cLocked">
+      <div class="hint" id="cLockedHint">Load the contacts file Jawahar shared with you. It stays on this phone only.<br><span class="ta">ஜவஹர் அனுப்பிய தொடர்பு கோப்பை ஏற்றவும்.</span></div>
+      <div class="bar"><input type="file" id="cFile" accept=".json,application/json"></div>
+      <div class="bar" id="cPassRow" hidden><input type="password" id="cPass" placeholder="Passphrase · கடவுச்சொல்" autocomplete="off"><button class="chip" id="cUnlock">Unlock</button></div>
+      <label class="hint" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="cKeep" checked> Keep the list on this phone · <span class="ta">இந்த போனில் வைத்திரு</span></label>
+      <div class="warn hint" id="cErr" style="color:#a8443a"></div>
+    </div>
+    <div id="cOpen" hidden>
+      <div class="hint" id="cAs"></div>
+      <div class="bar"><input type="search" id="cQ" placeholder="Search · தேடு"></div>
+      <div class="bar" id="cChips"></div>
+      <ul class="ppl" id="cList"></ul>
+      <button class="hint" id="cForget" style="border:none;background:none;padding:0;cursor:pointer;text-decoration:underline;margin-top:8px">Remove the list from this phone</button>
+    </div>
+  </div>
+
+  <div class="step" id="logBox" hidden><div class="q">Sent from this phone <small>அனுப்பியவை</small></div>
+    <ol class="log" id="log"></ol>
+    <button class="hint" id="clearLog" style="border:none;background:none;padding:0;cursor:pointer;text-decoration:underline">Clear list</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const SITE = 'https://fer.weds.j6.studio';
+  const S = { from:'j6', lang:'ta', tone:'respect', where:'india' };
+  try { Object.assign(S, JSON.parse(localStorage.getItem('send-prefs') || '{}')); } catch (e) {}
+
+  // ---------------- message parts ----------------
+  const GREET = {
+    en: { respect: n => `Dear ${n} 🙏`, family: n => `Dear ${n} 🤍`, friends: n => `Hi ${n} 👋`, work: n => `Hi ${n},` },
+    ta: { respect: n => `வணக்கம் ${n} 🙏`, family: n => `அன்புள்ள ${n} 🤍`, friends: n => `ஹாய் ${n} 😊`, work: n => `வணக்கம் ${n},` }
+  };
+  // who is getting married, in the sender's voice
+  const NEWS = {
+    en: {
+      j6:       { respect: 'With the blessings of God and our elders, Ferina and I are getting married. 💍',
+                  family:  "With our families' blessings, Ferina and I are getting married! 💍🎉",
+                  friends: 'Ferina and I are getting married! 💍🎉',
+                  work:    "I'm happy to share that Ferina and I are getting married. 💍" },
+      amma:     { respect: 'With the blessings of God and our elders, my son Jawahar is getting married to Ferina. 💍',
+                  family:  'Happy news! My son Jawahar is getting married to Ferina. 💍🎉',
+                  friends: 'Happy news! My son Jawahar is getting married to Ferina. 💍🎉',
+                  work:    "I'm happy to share that my son Jawahar is getting married to Ferina. 💍" },
+      thilagar: { respect: 'With the blessings of God and our elders, my brother Jawahar is getting married to Ferina. 💍',
+                  family:  'My brother Jawahar is getting married to Ferina! 🎉',
+                  friends: 'My brother Jawahar is getting married to Ferina! 🎉',
+                  work:    'Happy to share that my brother Jawahar is getting married to Ferina. 💍' }
+    },
+    ta: {
+      j6:       { respect: 'இறைவன் அருளாலும் பெரியோர்களின் ஆசியாலும், எனக்கும் ஃபெரினாவுக்கும் திருமணம் நடைபெற உள்ளது. 💍',
+                  family:  'இரு குடும்பத்தாரின் ஆசியுடன், எனக்கும் ஃபெரினாவுக்கும் திருமணம்! 💍🎉',
+                  friends: 'எனக்கும் ஃபெரினாவுக்கும் கல்யாணம்! 💍🎉',
+                  work:    'எனக்கும் ஃபெரினாவுக்கும் திருமணம் நடைபெற உள்ளது என்பதை மகிழ்ச்சியுடன் தெரிவித்துக்கொள்கிறேன். 💍' },
+      amma:     { respect: 'இறைவன் அருளாலும் பெரியோர்களின் ஆசியாலும், என் மகன் ஜவஹருக்கும் ஃபெரினாவுக்கும் திருமணம் நடைபெற உள்ளது. 💍',
+                  family:  'நல்ல செய்தி! என் மகன் ஜவஹருக்கும் ஃபெரினாவுக்கும் திருமணம். 💍🎉',
+                  friends: 'நல்ல செய்தி! என் மகன் ஜவஹருக்கும் ஃபெரினாவுக்கும் திருமணம். 💍🎉',
+                  work:    'என் மகன் ஜவஹருக்கும் ஃபெரினாவுக்கும் திருமணம் நடைபெற உள்ளது என்பதை மகிழ்ச்சியுடன் தெரிவித்துக்கொள்கிறேன். 💍' },
+      thilagar: { respect: 'இறைவன் அருளாலும் பெரியோர்களின் ஆசியாலும், என் அண்ணன் ஜவஹருக்கும் ஃபெரினாவுக்கும் திருமணம் நடைபெற உள்ளது. 💍',
+                  family:  'என் அண்ணன் ஜவஹருக்கும் ஃபெரினாவுக்கும் கல்யாணம்! 🎉',
+                  friends: 'என் அண்ணன் ஜவஹருக்கும் ஃபெரினாவுக்கும் கல்யாணம்! 🎉',
+                  work:    'என் அண்ணன் ஜவஹருக்கும் ஃபெரினாவுக்கும் திருமணம் நடைபெற உள்ளது என்பதை மகிழ்ச்சியுடன் தெரிவித்துக்கொள்கிறேன். 💍' }
+    }
+  };
+  // far away (India) vs. can come (Jakarta)
+  const PLACE = {
+    en: { india: { formal: 'The wedding is in Jakarta, Indonesia. We know it is far, but your blessings mean a lot to our family. 🤍',
+                   casual: "It's in Jakarta, Indonesia, so we know it's far. We'll miss you there, but your wishes mean the world to us! 🤍" },
+          jakarta: { formal: 'We would be honoured to have you with us in Jakarta. Your presence would make the day truly special. 🤍',
+                     casual: "We'd love for you to join us in Jakarta if you can make it. Your presence would make the day special! 🤍" } },
+    ta: { india: { formal: 'திருமணம் இந்தோனேசியாவின் ஜகார்த்தாவில் நடைபெறுகிறது. தூரம் காரணமாக நேரில் வர இயலாவிட்டாலும், உங்கள் ஆசீர்வாதம் எங்களுக்கு மிகவும் முக்கியம். 🤍',
+                   casual: 'கல்யாணம் இந்தோனேசியா, ஜகார்த்தாவில். ரொம்ப தூரம்னு தெரியும், உங்க வாழ்த்து எங்களுக்கு ரொம்ப முக்கியம்! 🤍' },
+          jakarta: { formal: 'ஜகார்த்தாவில் நடைபெறும் விழாவில் நீங்கள் கலந்துகொண்டு சிறப்பிக்க வேண்டுமென அன்புடன் அழைக்கிறோம். 🤍',
+                     casual: 'முடிஞ்சா ஜகார்த்தா வாங்க, நீங்க வந்தா ரொம்ப சந்தோஷம்! 🤍' } }
+  };
+  const WHEN = {
+    en: { india: '📍 Nikah: Wed, 11 Nov · 9:30 AM India time · KUA Kemayoran, Jakarta\n📍 Reception: 10:30 AM – 1:30 PM India time · Ayda Hotel, Jakarta',
+          jakarta: '📍 Nikah: Wed, 11 Nov · 11:00 AM (Jakarta time) · KUA Kemayoran\n📍 Reception: 12:00 – 3:00 PM · Ayda Hotel, Mangga Dua, Jakarta' },
+    ta: { india: '📍 நிக்காஹ்: புதன், 11 நவம்பர் · இந்திய நேரம் காலை 9:30 · KUA Kemayoran, ஜகார்த்தா\n📍 வரவேற்பு: இந்திய நேரம் காலை 10:30 – மதியம் 1:30 · அய்டா ஹோட்டல், ஜகார்த்தா',
+          jakarta: '📍 நிக்காஹ்: புதன், 11 நவம்பர் · காலை 11:00 (ஜகார்த்தா நேரம்) · KUA Kemayoran\n📍 வரவேற்பு: மதியம் 12:00 – 3:00 · அய்டா ஹோட்டல், மங்கா துவா, ஜகார்த்தா' }
+  };
+  const LINK_LINE = { en: { formal: 'Invitation:', casual: 'All the details here:' }, ta: { formal: 'அழைப்பிதழ்:', casual: 'எல்லா விவரமும் இங்கே:' } };
+  const SIGN = { en: { j6: '', amma: '— Subbulakshmi Mariselvam', thilagar: '— Thilagar' },
+                 ta: { j6: '', amma: '— சுப்புலட்சுமி மாரிசெல்வம்', thilagar: '— திலகர்' } };
+
+  function inviteLink(name, o){
+    o = o || S;
+    const p = new URLSearchParams();
+    let path;
+    if (o.where === 'india') { path = '/in'; if (o.lang === 'ta') p.set('lang', 'ta'); }
+    else path = o.lang === 'ta' ? '/ta' : '/en';
+    if (name) p.set('to', name);
+    p.set('from', o.from);
+    return SITE + path + '?' + p.toString().replace(/\+/g, '%20');
+  }
+  // o = {from, lang, tone, where}; greet = the word(s) after "Hi"/"Dear"; longTime = "Long time 😄" opener for old friends
+  function compose(name, o, greet, longTime){
+    o = o || S;
+    const formal = o.tone === 'respect' || o.tone === 'work';
+    const L = o.lang, reg = formal ? 'formal' : 'casual';
+    const g = greet || name || (L === 'ta' ? 'அன்புள்ளவரே' : 'there');
+    let hello = GREET[L][o.tone](g);
+    if (longTime) hello = L === 'ta' ? `ஹாய் ${g}! ரொம்ப நாளாச்சு 😄` : `Hey ${g}! Long time 😄`;
+    const parts = [hello, NEWS[L][o.from][o.tone], PLACE[L][o.where][reg], WHEN[L][o.where], LINK_LINE[L][reg] + ' ' + inviteLink(name, o)];
+    let m = parts.join('\n\n');
+    if (SIGN[L][o.from]) m += '\n\n' + SIGN[L][o.from];
+    return m;
+  }
+  function build(){ return compose(nameIn.value.trim()); }
+
+  // ---------------- UI ----------------
+  const nameIn = document.getElementById('name'), phoneIn = document.getElementById('phone'), msg = document.getElementById('msg');
+  const send = document.getElementById('send'), preview = document.getElementById('preview');
+  let edited = false;
+  function phoneDigits(){
+    let d = phoneIn.value.replace(/[^\d+]/g, '');
+    if (!d) return '';
+    if (d.startsWith('+')) return d.slice(1);
+    if (d.startsWith('00')) return d.slice(2);
+    d = d.replace(/^0+/, '');
+    return d.length === 10 ? '91' + d : d;          // a 10-digit number is Indian
+  }
+  function refresh(){
+    if (!edited) msg.value = build();
+    const ph = phoneDigits();
+    send.href = 'https://wa.me/' + ph + '?text=' + encodeURIComponent(msg.value);
+    preview.href = inviteLink(nameIn.value.trim()) + '&notrack';   // family previewing: never counted as a guest
+    document.querySelectorAll('.opts').forEach(g => g.querySelectorAll('.opt').forEach(b => b.classList.toggle('on', S[g.dataset.key] === b.dataset.v)));
+    try { localStorage.setItem('send-prefs', JSON.stringify({ from: S.from, lang: S.lang, tone: S.tone, where: S.where })); } catch (e) {}
+  }
+  document.querySelectorAll('.opts').forEach(g => g.addEventListener('click', e => {
+    const b = e.target.closest('.opt'); if (!b) return;
+    S[g.dataset.key] = b.dataset.v; edited = false; refresh();
+  }));
+  nameIn.addEventListener('input', () => { edited = false; refresh(); });
+  phoneIn.addEventListener('input', refresh);
+  msg.addEventListener('input', () => { edited = true; refresh(); });
+  document.getElementById('copy').addEventListener('click', async e => {
+    try { await navigator.clipboard.writeText(msg.value); e.target.textContent = 'Copied ✓ · நகலெடுக்கப்பட்டது'; setTimeout(() => e.target.textContent = 'Copy · நகலெடு', 1800); } catch (err) {}
+  });
+
+  // a small list of who was sent from this phone, so nobody gets it twice
+  const logBox = document.getElementById('logBox'), logEl = document.getElementById('log');
+  const getLog = () => { try { return JSON.parse(localStorage.getItem('send-log') || '[]'); } catch (e) { return []; } };
+  function drawLog(){
+    const l = getLog(); logBox.hidden = !l.length; logEl.innerHTML = '';
+    l.slice().reverse().forEach(x => { const li = document.createElement('li'); li.textContent = `${x.name || '(no name)'} · ${x.lang === 'ta' ? 'தமிழ்' : 'English'} · ${x.when}`; logEl.appendChild(li); });
+  }
+  send.addEventListener('click', () => {
+    const l = getLog();
+    l.push({ name: nameIn.value.trim(), lang: S.lang, when: new Date().toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) });
+    try { localStorage.setItem('send-log', JSON.stringify(l.slice(-300))); } catch (e) {}
+    setTimeout(() => { nameIn.value = ''; phoneIn.value = ''; edited = false; refresh(); drawLog(); }, 600);   // ready for the next guest
+  });
+  document.getElementById('clearLog').addEventListener('click', () => { try { localStorage.removeItem('send-log'); } catch (e) {} drawLog(); });
+
+  // ---------------- contacts list ----------------
+  // Comes from a file (plain JSON array, or encrypted {kdf:'PBKDF2-SHA256', iter, salt, iv, ct}) that the family loads on
+  // their own phone, or from assets/contacts.enc.json if one is published. Never in this page's source.
+  const GRP = { all:'All · அனைவரும்', call:'📞 Call first', elder:'Elders · பெரியோர்', relative:'Relatives · உறவினர்', hometown:'Hometown · ஊர்', close:'Close friends', friend:'Friends', college:'College', school:'School', work:'Work', todo:'Not sent · அனுப்பாதவை' };
+  let people = null, cFilter = 'all', pending = null;
+  const sentMap = () => { try { return JSON.parse(localStorage.getItem('send-sent') || '{}'); } catch (e) { return {}; } };
+  const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+  async function decrypt(blob, pass){
+    const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']);
+    const key = await crypto.subtle.deriveKey({ name:'PBKDF2', hash:'SHA-256', salt:b64(blob.salt), iterations:blob.iter }, base, { name:'AES-GCM', length:256 }, false, ['decrypt']);
+    const plain = await crypto.subtle.decrypt({ name:'AES-GCM', iv:b64(blob.iv) }, key, b64(blob.ct));
+    return JSON.parse(new TextDecoder().decode(plain));
+  }
+  function openList(list){
+    people = list;
+    if (document.getElementById('cKeep').checked) { try { localStorage.setItem('send-contacts', JSON.stringify(list)); } catch (e) {} }
+    document.getElementById('cLocked').hidden = true; document.getElementById('cOpen').hidden = false;
+    drawChips(); drawPeople();
+  }
+  function useBlob(blob){
+    if (Array.isArray(blob)) return openList(blob);
+    if (blob && blob.ct) { pending = blob; document.getElementById('cPassRow').hidden = false; document.getElementById('cPass').focus(); return; }
+    document.getElementById('cErr').textContent = 'That file is not a contacts list.';
+  }
+  document.getElementById('cFile').addEventListener('change', async e => {
+    const f = e.target.files[0]; if (!f) return;
+    try { useBlob(JSON.parse(await f.text())); } catch (err) { document.getElementById('cErr').textContent = 'Could not read that file.'; }
+  });
+  document.getElementById('cUnlock').addEventListener('click', async () => {
+    const err = document.getElementById('cErr'); err.textContent = 'Unlocking…';
+    try { openList(await decrypt(pending, document.getElementById('cPass').value.trim())); err.textContent = ''; }
+    catch (e) { err.textContent = 'Wrong passphrase · தவறான கடவுச்சொல்'; }
+  });
+  document.getElementById('cPass').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('cUnlock').click(); });
+  document.getElementById('cForget').addEventListener('click', () => { try { localStorage.removeItem('send-contacts'); } catch (e) {} people = null; document.getElementById('cOpen').hidden = true; document.getElementById('cLocked').hidden = false; });
+
+  function drawChips(){
+    const box = document.getElementById('cChips'); box.innerHTML = '';
+    Object.entries(GRP).forEach(([k, v]) => {
+      const n = k === 'all' ? people.length : k === 'call' ? people.filter(p => p.call).length : k === 'todo' ? '' : people.filter(p => p.g === k).length;
+      if (n === 0) return;
+      const b = document.createElement('button'); b.className = 'chip' + (k === cFilter ? ' on' : ''); b.textContent = v + (n !== '' ? ` (${n})` : '');
+      b.onclick = () => { cFilter = k; drawChips(); drawPeople(); }; box.appendChild(b);
+    });
+  }
+  const SENDER = { j6:'Jawahar', amma:'Amma', thilagar:'Thilagar' };
+  function contactMsg(p){ return compose(p.n, { from:S.from, lang:p.lang, tone:p.tone, where:p.where }, p.greet, p.lt); }
+  function drawPeople(){
+    if (!people) return;
+    document.getElementById('cAs').textContent = `Messages go out as ${SENDER[S.from]} (change in step 1). Each person gets their own language and style.`;
+    const q = document.getElementById('cQ').value.toLowerCase(), sent = sentMap(), ul = document.getElementById('cList'); ul.innerHTML = '';
+    let done = 0; people.forEach(p => { if (sent[p.p]) done++; });
+    GRP.todo = `Not sent · அனுப்பாதவை (${people.length - done})`;
+    people.filter(p => (!q || (p.n + ' ' + p.c + ' ' + p.p).toLowerCase().includes(q)) &&
+      (cFilter === 'all' || (cFilter === 'call' ? p.call : cFilter === 'todo' ? !sent[p.p] : p.g === cFilter))).forEach(p => {
+      const li = document.createElement('li'); if (sent[p.p]) li.className = 'done';
+      const who = document.createElement('div'); who.className = 'who';
+      who.innerHTML = '<div class="nm"></div><div class="meta"></div>' + (p.f ? '<div class="warn"></div>' : '');
+      who.querySelector('.nm').textContent = (p.call ? '📞 ' : '') + p.n;
+      who.querySelector('.meta').textContent = `+${p.p} · ${p.lang === 'ta' ? 'தமிழ்' : 'English'} · ${p.where === 'india' ? 'India' : 'Jakarta'}`;
+      if (p.f) who.querySelector('.warn').textContent = '⚠️ ' + p.f;
+      const a = document.createElement('a'); a.className = 'wa'; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'WhatsApp';
+      a.href = 'https://wa.me/' + p.p + '?text=' + encodeURIComponent(contactMsg(p));
+      a.addEventListener('click', () => { const m = sentMap(); m[p.p] = 1; try { localStorage.setItem('send-sent', JSON.stringify(m)); } catch (e) {} setTimeout(drawPeople, 400); });
+      const ed = document.createElement('button'); ed.className = 'ed'; ed.textContent = '✎'; ed.title = 'Edit first';
+      ed.addEventListener('click', () => { Object.assign(S, { lang:p.lang, tone:p.tone, where:p.where }); nameIn.value = p.n; phoneIn.value = '+' + p.p; edited = false; refresh(); msg.value = contactMsg(p); refresh(); document.getElementById('name').scrollIntoView({ behavior:'smooth', block:'center' }); });
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !!sent[p.p]; cb.title = 'Sent';
+      cb.addEventListener('change', () => { const m = sentMap(); if (cb.checked) m[p.p] = 1; else delete m[p.p]; try { localStorage.setItem('send-sent', JSON.stringify(m)); } catch (e) {} drawPeople(); });
+      li.append(who, ed, a, cb); ul.appendChild(li);
+    });
+  }
+  document.getElementById('cQ').addEventListener('input', drawPeople);
+  document.querySelector('.opts[data-key="from"]').addEventListener('click', () => setTimeout(drawPeople, 0));
+  (async () => {
+    try { const kept = JSON.parse(localStorage.getItem('send-contacts') || 'null'); if (kept) return openList(kept); } catch (e) {}
+    try { const r = await fetch('assets/contacts.enc.json', { cache:'no-store' }); if (r.ok) { pending = await r.json(); document.getElementById('cPassRow').hidden = false;
+      document.getElementById('cLockedHint').innerHTML = 'Enter the passphrase to open Jawahar\'s contacts list.<br><span class="ta">தொடர்பு பட்டியலைத் திறக்க கடவுச்சொல்லை உள்ளிடவும்.</span>'; } } catch (e) {}
+  })();
+
+  refresh(); drawLog();
+})();
+</script>
+</body>
+</html>
