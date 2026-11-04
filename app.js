@@ -866,7 +866,8 @@
   let wanted = true, fadeT = 0, cur = '';
   try { wanted = localStorage.getItem(KEY) !== 'off'; } catch(e) {}
   btn.hidden = false;
-  const srcFor = (lang) => SONGS[lang] || SONGS.en;
+  const only = audio.getAttribute('data-song');                    // a page can pin one track for every language (/in)
+  const srcFor = (lang) => only || SONGS[lang] || SONGS.en;
   const setSrc = (url) => { if (url !== cur) { cur = url; audio.src = url; } };
   setSrc(srcFor(document.documentElement.lang));
   // `on` is the button's own truth. Never read it back from the <audio>: on iPhone `volume` is fixed at 1 and play()
