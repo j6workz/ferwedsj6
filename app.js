@@ -874,6 +874,10 @@
   // resolves late while the file streams in, so guessing from the element made taps do nothing.
   let on = false;
   const show = () => { btn.classList.toggle('on', on); btn.setAttribute('aria-pressed', on ? 'true' : 'false'); };
+  // a page can keep the sound to one part of the page (/in: <audio data-zone=".opening"> = only at the lake). The
+  // button then means "sound allowed"; it plays while that part is on screen and pauses when the guest scrolls on.
+  const zoneSel = audio.getAttribute('data-zone'), zone = zoneSel && document.querySelector(zoneSel);
+  let inZone = !zone;
   function fadeIn(){                                             // desktop nicety; iPhone ignores volume and just plays
     clearInterval(fadeT);
     try { audio.volume = 0; } catch(e) {}
@@ -886,12 +890,27 @@
   }
   function play(){
     on = true; show();
+    if (!inZone){ prime(); return; }
     audio.muted = false;
     fadeIn();
     const p = audio.play();
     if (p && p.then) p.then(() => { if (!on) audio.pause(); })   // turned off while it was still loading
                       .catch(() => { on = false; show(); });
   }
+  // iPhone only lets sound start from a tap: when the button is tapped away from the zone, start the track muted
+  // and pause it straight away, so the zone can start it later without a tap
+  function prime(){
+    audio.muted = true;
+    const p = audio.play();
+    const after = () => { if (!(on && inZone)) audio.pause(); audio.muted = false; };
+    if (p && p.then) p.then(after).catch(() => { audio.muted = false; }); else after();
+  }
+  if (zone) new IntersectionObserver((es) => {
+    inZone = es[0].isIntersecting && es[0].intersectionRatio >= .35;
+    if (!on) return;
+    if (inZone){ audio.muted = false; fadeIn(); audio.play().catch(() => {}); }
+    else audio.pause();
+  }, { threshold: [0, .35, .6] }).observe(zone);
   function stop(){
     on = false; show();
     clearInterval(fadeT);
@@ -903,7 +922,9 @@
     try { localStorage.setItem(KEY, wanted ? 'on' : 'off'); } catch(e) {}
   });
   const open = document.getElementById('openBtn');
-  if (open) open.addEventListener('click', () => { if (wanted && !on) play(); });
+  // a page can ask to stay silent until the guest taps the sound button (/in: <audio data-manual>)
+  const manual = audio.hasAttribute('data-manual');
+  if (open && !manual) open.addEventListener('click', () => { if (wanted && !on) play(); });
 
   // language switch: same second, other track
   document.addEventListener('nikah:locale', (e) => {
@@ -913,7 +934,7 @@
     setSrc(url);
     const resume = () => {
       try { audio.currentTime = Math.min(t, (audio.duration || t + 1) - .25); } catch(err) {}
-      if (playing && on) audio.play().catch(() => { on = false; show(); });
+      if (playing && on && inZone) audio.play().catch(() => { on = false; show(); });
     };
     if (audio.readyState >= 1) resume(); else audio.addEventListener('loadedmetadata', resume, { once: true });
     if (playing) audio.load();
@@ -921,6 +942,6 @@
 
   document.addEventListener('visibilitychange', () => {                // quiet in a background tab, resume on return
     if (document.hidden) { if (on) audio.pause(); }
-    else if (on) audio.play().catch(() => { on = false; show(); });
+    else if (on && inZone) audio.play().catch(() => { on = false; show(); });
   });
 })();

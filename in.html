@@ -198,6 +198,7 @@ body > .fcard{left:0;top:0;transform-origin:0 0;z-index:905}
 .env .rule{width:44px;height:1px;background:var(--gold-b);opacity:.6;margin:14px auto 12px}
 .env .dear{font-size:14px;color:var(--ink-soft)}
 .env .guest{font-size:21px;color:var(--green);margin:2px 0 26px}
+.env .k,.env .guest,.env .dear{overflow-wrap:break-word}   /* a long guest name (?to=) or Tamil word never runs out of the card */
 /* Jessy lounging on top of the open button, breathing slowly */
 .btn-nap{position:relative;display:inline-block;margin-top:34px}
 .nap-cat{position:absolute;right:-14px;bottom:calc(100% - 9px);width:92px;pointer-events:none;transform-origin:50% 100%;animation:napBreathe 3.6s ease-in-out infinite;filter:drop-shadow(0 3px 3px rgba(15,39,28,.22))}
@@ -528,6 +529,51 @@ html[lang="ta"] .closing .names[data-i18n]{font-size:30px}
 #lightbox{position:fixed;inset:0;z-index:990;background:rgba(15,39,28,.94);display:none;align-items:center;justify-content:center;padding:24px;cursor:zoom-out}
 #lightbox.show{display:flex}
 #lightbox img{max-width:min(92vw,560px);max-height:86vh;filter:drop-shadow(0 12px 30px rgba(0,0,0,.4))}
+/* very narrow layouts = a phone zoomed to 125%+ (Safari aA / Chrome zoom): nothing may run off the screen */
+@media (max-width:340px){
+  .env h1,.opening h2,html[lang="ta"] .env h1[data-i18n],html[lang="ta"] .opening h2[data-i18n]{white-space:normal}
+  .pill{white-space:normal;text-align:center;justify-content:center;max-width:100%}
+  .pill.gold{letter-spacing:.1em;padding:12px 20px}
+  .att{flex-direction:column;gap:8px}
+  .field.stepper{flex-wrap:wrap;gap:4px;padding:6px 8px 6px 12px}
+  .cd .n{font-size:26px}
+  .cd .l{font-size:10px;letter-spacing:0}
+  body{overflow-wrap:break-word}   /* last resort: a word longer than the line wraps instead of running off */
+  h2.title,h3,.closing .names,html[lang="ta"] h2.title[data-i18n],html[lang="ta"] h3[data-i18n],html[lang="ta"] .closing .names[data-i18n]{font-size:clamp(17px,8.4vw,28px)}
+  .script,html[lang="ta"] .script[data-i18n]{font-size:clamp(19px,9.6vw,34px)}
+}
+@media (max-width:240px){
+  .cd{flex-wrap:wrap;row-gap:6px}.cd>div{flex:0 0 50%}
+  .btn-nap{display:block;max-width:100%;margin-top:18px}
+  .pill.gold{letter-spacing:0;padding:10px 12px;font-size:11.5px}
+  /* envelope: smaller flap and seal, tighter type, so the open button stays on screen */
+  .env .paper{padding:118px 14px 16px}
+  .env .flap{height:84px}
+  .env .seal{top:84px;width:54px;height:54px;margin:-30px 0 0 -27px;font-size:17px}
+  .env .k{font-size:13px}
+  .env h1,html[lang="ta"] .env h1[data-i18n]{font-size:19px}
+  .env .guest{font-size:16px;margin:2px 0 12px}
+  .env .rule{margin:10px auto 8px}
+  .nap-cat{width:54px;right:-8px}
+  .env .sprig{display:none}
+  #cover .corner-b{width:34%}
+  #cover:not(.open){z-index:902}   /* the flower band (#bridge, 901) would hide the open button on a screen this small */
+}
+/* short screens = a phone turned sideways, or a laptop zoomed to ~250%+: keep the open button on screen */
+@media (max-height:480px){
+  .env .paper{padding:92px 18px 14px}
+  .env .flap{height:66px}
+  .env .seal{top:66px;width:48px;height:48px;margin:-26px 0 0 -24px;font-size:15px}
+  .env .k{font-size:13px}
+  .env h1,html[lang="ta"] .env h1[data-i18n]{font-size:22px}
+  .env .d{margin-top:2px}
+  .env .rule{margin:6px auto}
+  .env .guest{font-size:16px;margin:0 0 4px}
+  .btn-nap{margin-top:12px}
+  .nap-cat{width:60px}
+  .env .sprig{display:none}
+  #cover:not(.open){z-index:902}
+}
 /* /in only: one gift card (UPI), centred; small GPay / PhonePe / Paytm buttons under it */
 #gift .gift-track{justify-content:center}
 .upi-pay{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:10px}
@@ -540,7 +586,7 @@ html[lang="ta"] .closing .names[data-i18n]{font-size:30px}
 </head>
 <body class="locked">
 
-<audio id="song" loop preload="none" playsinline data-song="assets/song-gamelan.m4a?v=1"></audio>
+<audio id="song" loop preload="none" playsinline data-manual data-zone=".opening" data-song="assets/birds-nilgiris.m4a?v=2"></audio>
 <button class="sound-toggle" id="soundBtn" type="button" aria-label="Music" aria-pressed="false" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><g class="off"><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18 6.5a7.5 7.5 0 0 1 0 11"/></g><g class="x"><path d="M16 9.5l5 5M21 9.5l-5 5"/></g></svg></button>
 <div class="lang-toggle"><button data-lang="id">ID</button><button data-lang="en" class="active">EN</button><button data-lang="ta" lang="ta" aria-label="தமிழ்">த</button></div>
 
@@ -799,8 +845,8 @@ html[lang="ta"] .closing .names[data-i18n]{font-size:30px}
     <div class="sub" data-r="zoom-down" data-delay="150" data-i18n="rsvp.sub">Berikan Ucapan &amp; Doa Restu</div>
     <img class="peek" src="assets/cats-four-front.webp" alt="" data-r="zoom-up" loading="lazy">
     <form id="rsvpForm" data-r="zoom-up" data-delay="150">
-      <div class="field"><input type="text" name="name" required maxlength="150" data-i18n-placeholder="rsvp.name.placeholder" aria-label="Nama"></div>
-      <div class="field"><textarea name="message" maxlength="500" data-i18n-placeholder="rsvp.message.placeholder" aria-label="Ucapan"></textarea></div>
+      <div class="field"><label class="lbl" for="rsvpName" data-i18n="rsvp.name.label">Nama</label><input type="text" id="rsvpName" name="name" required maxlength="150" data-i18n-placeholder="rsvp.name.placeholder"></div>
+      <div class="field"><label class="lbl" for="rsvpMessage" data-i18n="rsvp.message.label">Ucapan &amp; doa</label><textarea id="rsvpMessage" name="message" maxlength="500" data-i18n-placeholder="rsvp.message.placeholder"></textarea></div>
       <div class="field"><label class="lbl" data-i18n="rsvp.attending.label">Konfirmasi kehadiran</label>
         <div class="att">
           <label class="y"><input type="radio" name="attending" value="yes" required><span data-i18n="rsvp.attending.yes">Hadir</span></label>
@@ -815,7 +861,7 @@ html[lang="ta"] .closing .names[data-i18n]{font-size:30px}
           <button type="button" class="plus" aria-label="+1">+</button>
         </div>
       </div>
-      <div class="field"><input type="tel" name="phone" maxlength="20" pattern="[0-9+()\- ]{6,20}" data-i18n-placeholder="rsvp.phone.label" aria-label="Telepon"></div>
+      <div class="field"><label class="lbl" for="rsvpPhone" data-i18n="rsvp.phone.label">Telepon / WhatsApp</label><input type="tel" id="rsvpPhone" name="phone" maxlength="20" pattern="[0-9+()\- ]{6,20}" data-i18n-placeholder="rsvp.phone.placeholder"></div>
       <button type="submit" class="rsvp-submit" id="rsvpSubmit" data-i18n="rsvp.submit">Kirim</button>
       <div class="rsvp-note" data-i18n="rsvp.note">Nomor telepon hanya terlihat oleh kami.</div>
     </form>
@@ -832,7 +878,7 @@ html[lang="ta"] .closing .names[data-i18n]{font-size:30px}
     <div class="so" data-r="zoom-down" data-delay="150" data-i18n="closing.signoff">Kami yang berbahagia,</div>
     <div class="names gilda" data-r="zoom-down" data-delay="300" data-i18n="names.couple">Jawahar &amp; Ferina</div>
     <div class="kits" data-r="zoom-down" data-delay="400"><span class="amp2">&amp;</span>KuaCham · Jessy · Creamy · Yuzu</div>
-    <div class="music-credit">Music: <a href="https://commons.wikimedia.org/wiki/File:Ladrang_Jakarta_Endah_Pelog_Nem.oga" target="_blank" rel="noopener">Ladrang Jakarta Endah</a>, Karawitan Marta Yogiswara · <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a></div>
+    <div class="music-credit">Birdsong: <a href="https://commons.wikimedia.org/wiki/File:Dawn_chorus_at_Glencairnie_big_bungalow_Craigmore_DM.ogg" target="_blank" rel="noopener">dawn chorus, Craigmore, Nilgiris</a>, DivyaCM · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a></div>
   </div>
   <div class="corner-b l" data-r="zoom-bl"><div class="pulse-l"><img src="assets/floral-corner-bl.webp" alt="" loading="lazy"></div></div>
   <div class="corner-b r" data-r="zoom-br"><div class="pulse-r"><img src="assets/floral-corner-bl.webp" alt="" loading="lazy"></div></div>
@@ -846,8 +892,8 @@ html[lang="ta"] .closing .names[data-i18n]{font-size:30px}
 <div id="lightbox"><img alt=""></div>
 
 <script>if(/[?&]debug/.test(location.search))document.write('<script src="debug.js?v=6"><\/script>')</script>
-<script src="i18n.js?v=20261105c"></script>
-<script src="app.js?v=20261104g"></script>
+<script src="i18n.js?v=20261104k"></script>
+<script src="app.js?v=20261104z"></script>
 <script src="water-gl.js?v=6"></script>
 <script type="module" src="rsvp.js?v=20261104v"></script>
 <script>

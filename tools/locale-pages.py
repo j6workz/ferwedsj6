@@ -102,14 +102,15 @@ out = out.replace('<meta property="og:type" content="website">',
                   f'<meta property="og:type" content="website">\n<meta property="og:url" content="{SITE}/in">\n<meta property="og:locale" content="en_IN">', 1)
 out = out.replace('<!DOCTYPE html>', '<!DOCTYPE html>\n<!-- GENERATED from index.html by tools/locale-pages.py (India page: UPI only). Do not edit; edit index.html and re-run. -->', 1)
 
-# music: one gamelan track (Ladrang Jakarta Endah, Karawitan Marta Yogiswara, CC BY-SA 4.0) in every language;
-# app.js uses <audio data-song> instead of its per-language list. The licence asks for a credit: footer line below.
+# sound: only birdsong, in every language: a calm 3-minute loop of a Nilgiris dawn chorus (DivyaCM, CC BY 4.0,
+# Wikimedia Commons), quiet and softened. app.js uses <audio data-song> instead of its per-language list,
+# data-manual keeps it silent until the guest taps the sound button, and data-zone plays it only at the lake. The licence asks for a credit: footer line below.
 out = out.replace('<audio id="song" loop preload="none" playsinline></audio>',
-                  '<audio id="song" loop preload="none" playsinline data-song="assets/song-gamelan.m4a?v=1"></audio>', 1)
+                  '<audio id="song" loop preload="none" playsinline data-manual data-zone=".opening" data-song="assets/birds-nilgiris.m4a?v=2"></audio>', 1)
 if 'data-song=' not in out: raise SystemExit('locale-pages (in): could not find the <audio id="song"> tag')
-credit = ('\n    <div class="music-credit">Music: <a href="https://commons.wikimedia.org/wiki/File:Ladrang_Jakarta_Endah_Pelog_Nem.oga" '
-          'target="_blank" rel="noopener">Ladrang Jakarta Endah</a>, Karawitan Marta Yogiswara · '
-          '<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a></div>')
+credit = ('\n    <div class="music-credit">Birdsong: <a href="https://commons.wikimedia.org/wiki/File:Dawn_chorus_at_Glencairnie_big_bungalow_Craigmore_DM.ogg" '
+          'target="_blank" rel="noopener">dawn chorus, Craigmore, Nilgiris</a>, DivyaCM · '
+          '<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a></div>')
 out = insert_after(out, 'KuaCham · Jessy · Creamy · Yuzu</div>', credit, 'closing cats line')
 
 # gift: the UPI card on /in is Jawahar's mother's account (Subbulakshmi Mariselvam, Paytm UPI), not his own
