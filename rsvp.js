@@ -14,6 +14,18 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// RSVP alert: a Google Apps Script relay (tools/rsvp-telegram.gs) under Jawahar's account sends it to Telegram and
+// copies it to a Google Sheet. The bot token lives only there, never in this page. Fire-and-forget: Firestore is
+// the record; if the alert fails the guest still sees the thank-you.
+const NOTIFY_URL = 'https://script.google.com/macros/s/AKfycbw922XOvv9O8FceqwEKQRaip21QJXJUqPQr0iMZN0icE6osr7uhCWnlNdtBwMSGGy_y/exec';
+function notify(data){
+  try {
+    fetch(NOTIFY_URL, { method: 'POST', mode: 'no-cors', keepalive: true,
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // "simple" request: no CORS preflight
+      body: JSON.stringify(data) }).catch(() => {});
+  } catch (e) {}
+}
+
 const form = document.getElementById('rsvpForm');
 const submitBtn = document.getElementById('rsvpSubmit');
 const status = document.getElementById('rsvpStatus');
@@ -49,6 +61,8 @@ form.addEventListener('submit', async (e) => {
         name, phone, source: 'v4', submitted_at: serverTimestamp()
       });
     }
+    const page = (location.pathname.replace(/\/|\.html$/g, '') || 'main') + ' · ' + (document.documentElement.lang || '');
+    notify({ name, attending, guests, message, phone, page });
     // thank-you replaces the form for a few seconds, then the form fades back in, reset, for the next response
     form.reset();
     form.classList.add('hidden');
