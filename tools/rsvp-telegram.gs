@@ -22,6 +22,9 @@
 const SHEET_NAME = 'RSVPs';
 
 const clean = (s, n) => String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, n);
+// guest-typed text must never become a sheet formula (=IMPORTXML(...) could leak the sheet): a leading = + - @ is
+// written as plain text by prefixing an apostrophe, which Sheets hides
+const cell = (s) => /^[=+\-@\t\r]/.test(s) ? "'" + s : s;
 
 function doPost(e) {
   let d = {};
@@ -39,7 +42,7 @@ function doPost(e) {
   cache.put('n', String(n + 1), 600);
 
   const sh = sheet_();
-  sh.appendRow([new Date(), name, att, guests, msg, phone, page]);
+  sh.appendRow([new Date(), cell(name), att, guests, cell(msg), cell(phone), cell(page)]);
 
   const lines = [
     '🤍 New RSVP' + (page ? ' (' + page + ')' : ''),
@@ -64,7 +67,7 @@ function events_(d) {
 
   const vid = clean(d.vid, 12), guest = clean(d.guest, 150), page = clean(d.page, 20), lang = clean(d.lang, 5), device = clean(d.device, 30);
   const rows = list.map((ev) => {
-    const t = new Date(ev.t); return [isNaN(t) ? new Date() : t, guest || '(no name) ' + vid, clean(ev.event, 30), clean(ev.detail, 80), page, lang, device, vid];
+    const t = new Date(ev.t); return [isNaN(t) ? new Date() : t, cell(guest || '(no name) ' + vid), cell(clean(ev.event, 30)), cell(clean(ev.detail, 80)), cell(page), cell(lang), cell(device), cell(vid)];
   });
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
@@ -73,11 +76,15 @@ function events_(d) {
     sh.getRange(sh.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
   } finally { lock.releaseLock(); }
 
-  // Telegram ping the first time each device opens the envelope
+  // Telegram ping the first time a guest opens the envelope. The URL is public, so: remembered in the cache (expires,
+  // nothing piles up in the settings store), keyed by guest name (made-up device ids can't multiply the pings),
+  // and at most 25 pings per hour overall; everything is still logged in the sheet either way.
   if (list.some((ev) => ev.event === 'open_invitation')) {
-    const props = PropertiesService.getScriptProperties();
-    if (!props.getProperty('seen:' + vid)) {
-      props.setProperty('seen:' + vid, '1');
+    const who = (guest || 'device ' + vid).toLowerCase().slice(0, 100);
+    const sent = Number(cache.get('pings') || 0);
+    if (!cache.get('seen:' + who) && sent < 25) {
+      cache.put('seen:' + who, '1', 21600);              // 6 h: a guest re-opening later the same day doesn't ping again
+      cache.put('pings', String(sent + 1), 3600);
       telegram_('👀 ' + (guest || 'Someone without a name in the link') + ' opened the invitation (' + page + ' · ' + lang + ' · ' + device + ')');
     }
   }
