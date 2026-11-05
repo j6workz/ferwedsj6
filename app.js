@@ -779,9 +779,9 @@
   toTop.addEventListener('click', () => window.scrollTo({ top: lakeTop(), behavior: 'smooth' }));
 
   // ---------- countdown ----------
-  const target = new Date('2026-11-11T11:00:00+07:00').getTime();
+  const target = new Date('2026-11-11T10:00:00+07:00').getTime();
   const ids = ['cd-days', 'cd-hours', 'cd-mins', 'cd-secs'].map((id) => document.getElementById(id));
-  // before 11:00 WIB on the day: countdown; rest of the wedding day: "Today's the day!"; afterwards: "Finally official!"
+  // before 10:00 WIB on the day: countdown; rest of the wedding day: "Today's the day!"; afterwards: "Finally official!"
   // (?preview=today or ?preview=done shows those states early)
   const dayEnd = new Date('2026-11-12T00:00:00+07:00').getTime();
   const preview = new URLSearchParams(location.search).get('preview');
@@ -804,13 +804,13 @@
   }
   tick(); setInterval(tick, 1000);
 
-  // ---------- add to Google Calendar (11:00–15:00 WIB = 04:00–08:00 UTC) ----------
+  // ---------- add to Google Calendar (10:00–15:00 WIB = 03:00–08:00 UTC) ----------
   const cal = new URL('https://calendar.google.com/calendar/render');
   cal.searchParams.set('action', 'TEMPLATE');
   cal.searchParams.set('text', 'Akad Nikah & Resepsi — Jawahar & Ferina');
-  cal.searchParams.set('dates', '20261111T040000Z/20261111T080000Z');
+  cal.searchParams.set('dates', '20261111T030000Z/20261111T080000Z');
   cal.searchParams.set('location', 'KUA Kecamatan Kemayoran, Jakarta');
-  cal.searchParams.set('details', 'Akad Nikah 11:00 WIB · KUA Kecamatan Kemayoran\nResepsi 12:00–15:00 WIB · Ayda Hotel, Mangga Dua, Jakarta\n' + location.href.split('?')[0]);
+  cal.searchParams.set('details', 'Akad Nikah 10:00 WIB · KUA Kecamatan Kemayoran\nResepsi 12:00–15:00 WIB · Ayda Hotel, Mangga Dua, Jakarta\n' + location.href.split('?')[0]);
   document.getElementById('calBtn').href = cal.toString();
 
   // ---------- copy account number ----------

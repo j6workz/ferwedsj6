@@ -33,9 +33,9 @@ The page layout and motion are done. The job now is to **swap in a new set of il
 |---|---|
 | Groom | **Jawahar Mariselvam**, nickname **J6**, Hindu, from India (lives in Kuala Lumpur) |
 | Bride | **Ferina Khansa Nabilah**, nickname **Fer**, Muslim, Indonesian |
-| Akad Nikah | **Wednesday 11 Nov 2026, 11:00 WIB**, KUA Kecamatan Kemayoran, Jakarta |
+| Akad Nikah | **Wednesday 11 Nov 2026, 10:00 WIB** (moved from 11:00 on 5 Nov), KUA Kecamatan Kemayoran, Jakarta |
 | Resepsi | **Wednesday 11 Nov 2026, 12:00–15:00 WIB**, Ayda Hotel, Jakarta |
-| Countdown target | `2026-11-11T11:00:00+07:00` (in `app.js`) |
+| Countdown target | `2026-11-11T10:00:00+07:00` (in `app.js`) |
 | Cats | **KuaCham** (calico, rescued after a firefly trip, Aug 2025), **Jessy** (Siamese × DSH), **Creamy** (cream medium-hair, ragdoll look), **Yuzu** (DSH, July 2026) |
 | Story | Matched on a dating app; she hesitated, he called; first met **20 Apr 2025**; fell in love weeks later; every weekend she came to his home in KL, they cooked, she bakes cakes and bread ("I became sikit fat because of her love"); Aug 2025 fireflies → KuaCham; about 6 months in, met his family in India by video call; then Jessy, Creamy, Yuzu; Sept 2026 housewarming in India, met family in person, decided on nikah ASAP → 11 Nov |
 | Still placeholders | Parents' names (`profile.*.parents` in `i18n.js`), bank name, account number, account holder (`.bank-card` in `index.html`), music track |

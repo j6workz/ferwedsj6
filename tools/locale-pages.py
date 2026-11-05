@@ -16,17 +16,17 @@ SITE = 'https://fer.weds.j6.studio'
 PAGES = {
     'id': dict(
         title='The Wedding of Jawahar & Ferina',
-        desc='Jawahar Mariselvam & Ferina Khansa Nabilah — Akad Nikah Rabu, 11 November 2026, 11.00 WIB, KUA Kemayoran. Resepsi 12.00–15.00 WIB, Ayda Hotel, Mangga Dua, Jakarta.',
+        desc='Jawahar Mariselvam & Ferina Khansa Nabilah — Akad Nikah Rabu, 11 November 2026, 10.00 WIB, KUA Kemayoran. Resepsi 12.00–15.00 WIB, Ayda Hotel, Mangga Dua, Jakarta.',
         og_desc='Akad Nikah · 11 November 2026 · KUA Kemayoran — Resepsi · Ayda Hotel, Mangga Dua, Jakarta',
         image='assets/og-image.jpg', alt='The Wedding of Jawahar & Ferina — 11 · 11 · 2026'),
     'en': dict(
         title='The Wedding of Jawahar & Ferina',
-        desc='Jawahar Mariselvam & Ferina Khansa Nabilah — Akad Nikah Wednesday, 11 November 2026, 11:00 WIB, KUA Kemayoran. Reception 12:00–15:00 WIB, Ayda Hotel, Mangga Dua, Jakarta.',
+        desc='Jawahar Mariselvam & Ferina Khansa Nabilah — Akad Nikah Wednesday, 11 November 2026, 10:00 WIB, KUA Kemayoran. Reception 12:00–15:00 WIB, Ayda Hotel, Mangga Dua, Jakarta.',
         og_desc='Akad Nikah · 11 November 2026 · KUA Kemayoran — Reception · Ayda Hotel, Mangga Dua, Jakarta',
         image='assets/og-image.jpg', alt='The Wedding of Jawahar & Ferina — 11 · 11 · 2026'),
     'ta': dict(
         title='ஜவஹர் & ஃபெரினா திருமணம்',
-        desc='ஜவஹர் மாரிசெல்வம் & ஃபெரினா கன்ஸா நபிலா — நிக்காஹ் புதன், 11 நவம்பர் 2026, காலை 11:00 (WIB), KUA கெமயோரான். வரவேற்பு மதியம் 12:00 – 3:00 (WIB), அய்டா ஹோட்டல், மங்கா துவா, ஜகார்த்தா.',
+        desc='ஜவஹர் மாரிசெல்வம் & ஃபெரினா கன்ஸா நபிலா — நிக்காஹ் புதன், 11 நவம்பர் 2026, காலை 10:00 (WIB), KUA கெமயோரான். வரவேற்பு மதியம் 12:00 – 3:00 (WIB), அய்டா ஹோட்டல், மங்கா துவா, ஜகார்த்தா.',
         og_desc='நிக்காஹ் · 11 நவம்பர் 2026 · KUA கெமயோரான் — வரவேற்பு · அய்டா ஹோட்டல், மங்கா துவா, ஜகார்த்தா',
         image='assets/og-image-ta.jpg', alt='ஜவஹர் & ஃபெரினா திருமணம் — 11 · 11 · 2026'),
 }
